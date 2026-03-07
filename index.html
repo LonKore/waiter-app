@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Официант: Заказ стола с историей</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .app {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 32px 32px 24px 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px 16px 24px;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-left: 5px;
+            color: #2d3436;
+            letter-spacing: -0.5px;
+        }
+
+        /* Табы */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            background: #f0f3f4;
+            border: none;
+            border-radius: 40px;
+            padding: 15px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #636e72;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .tab.active {
+            background: #0984e3;
+            color: white;
+        }
+
+        /* Секции */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .tables-section {
+            margin-bottom: 24px;
+        }
+
+        .section-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            color: #636e72;
+            margin-bottom: 12px;
+        }
+
+        .tables-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .table-btn {
+            flex: 0 0 calc(25% - 9px);
+            background: #f0f3f4;
+            border: 2px solid transparent;
+            border-radius: 24px;
+            padding: 14px 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2d3436;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            transition: all 0.1s ease;
+            cursor: pointer;
+            text-align: center;
+            touch-action: manipulation;
+        }
+
+        .table-btn.active {
+            background: #0984e3;
+            color: white;
+            border-color: #0652a0;
+            transform: scale(0.98);
+        }
+
+        .menu-section {
+            margin-bottom: 24px;
+        }
+
+        .menu-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .product-btn {
+            flex: 1 0 calc(33.333% - 8px);
+            min-width: 110px;
+            background: #fef9e7;
+            border: 1px solid #ffeaa7;
+            border-radius: 28px;
+            padding: 18px 6px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #6c5ce7;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+            transition: background 0.1s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.3;
+            touch-action: manipulation;
+        }
+
+        .product-btn:active {
+            background: #fdcb6e;
+            color: #2d3436;
+            border-color: #f39c12;
+        }
+
+        .product-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 6px;
+        }
+
+        .product-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #00b894;
+        }
+
+        .order-section {
+            background: #fafafa;
+            border-radius: 28px;
+            padding: 20px 18px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.02), 0 3px 10px rgba(0,0,0,0.05);
+            margin-bottom: 18px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 16px;
+        }
+
+        .order-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3436;
+        }
+
+        .table-indicator {
+            background: #dfe6e9;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .order-items {
+            min-height: 60px;
+        }
+
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed #b2bec3;
+            font-size: 1.2rem;
+        }
+
+        .order-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-name {
+            font-weight: 500;
+            flex: 2;
+        }
+
+        .item-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f0f3f4;
+            padding: 5px 10px;
+            border-radius: 40px;
+        }
+
+        .qty-btn {
+            background: #0984e3;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .qty-btn.minus {
+            background: #ff7675;
+        }
+
+        .qty-btn:active {
+            transform: scale(0.9);
+        }
+
+        .item-qty {
+            font-size: 1.3rem;
+            font-weight: 700;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .empty-cart {
+            color: #b2bec3;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 1.2rem;
+            font-style: italic;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .primary-btn {
+            background: #00b894;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 15px 20px;
+            flex: 1;
+            border-radius: 60px;
+            box-shadow: 0 8px 12px rgba(0, 184, 148, 0.3);
+            cursor: pointer;
+            transition: background 0.1s;
+            text-align: center;
+            border: 1px solid #00a884;
+            touch-action: manipulation;
+        }
+
+        .primary-btn:active {
+            background: #00a884;
+            transform: scale(0.98);
+        }
+
+        .clear-btn {
+            background: #ff7675;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 15px 20px;
+            flex: 1;
+            border-radius: 60px;
+            box-shadow: 0 8px 12px rgba(255, 118, 117, 0.3);
+            cursor: pointer;
+            transition: background 0.1s;
+            text-align: center;
+            border: 1px solid #d63031;
+            touch-action: manipulation;
+        }
+
+        .clear-btn:active {
+            background: #d63031;
+            transform: scale(0.98);
+        }
+
+        .total-sum {
+            background: #00b894;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 40px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        /* История */
+        .history-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #fafafa;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 5px solid #0984e3;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .history-table {
+            background: #0984e3;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+        }
+
+        .history-time {
+            color: #636e72;
+            font-size: 0.9rem;
+        }
+
+        .history-items {
+            font-size: 1rem;
+            color: #2d3436;
+            margin-bottom: 8px;
+        }
+
+        .history-total {
+            text-align: right;
+            font-weight: 700;
+            color: #00b894;
+            font-size: 1.2rem;
+            border-top: 1px dashed #b2bec3;
+            padding-top: 8px;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #b2bec3;
+            padding: 40px 0;
+            font-size: 1.2rem;
+        }
+
+        .footer-note {
+            text-align: center;
+            color: #a0a0a0;
+            font-size: 0.75rem;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>🍽️ Официант</h1>
+
+        <!-- Табы -->
+        <div class="tabs">
+            <button class="tab active" id="tabCurrent">Текущий заказ</button>
+            <button class="tab" id="tabHistory">История</button>
+        </div>
+
+        <!-- Секция текущего заказа -->
+        <div class="section active" id="currentSection">
+            <!-- Столы -->
+            <div class="tables-section">
+                <div class="section-label">ВЫБЕРИТЕ СТОЛ</div>
+                <div class="tables-grid" id="tablesContainer"></div>
+            </div>
+
+            <!-- Товары (меню) -->
+            <div class="menu-section">
+                <div class="section-label">БЛЮДА / НАПИТКИ</div>
+                <div class="menu-grid" id="productsContainer"></div>
+            </div>
+
+            <!-- Текущий заказ -->
+            <div class="order-section">
+                <div class="order-header">
+                    <h3>📋 Заказ</h3>
+                    <span class="table-indicator" id="currentTableLabel">Стол не выбран</span>
+                </div>
+                <div class="order-items" id="orderItemsContainer">
+                    <div class="empty-cart">➕ Нажмите на товар, чтобы добавить</div>
+                </div>
+            </div>
+
+            <!-- Общая сумма -->
+            <div class="total-sum" id="totalSum">Итого: 0₽</div>
+
+            <!-- Кнопки управления -->
+            <div class="action-buttons">
+                <button class="primary-btn" id="confirmOrderBtn">✅ Подтвердить заказ</button>
+                <button class="clear-btn" id="clearOrderBtn">🧹 Очистить</button>
+            </div>
+        </div>
+
+        <!-- Секция истории -->
+        <div class="section" id="historySection">
+            <div class="section-label">ИСТОРИЯ ЗАКАЗОВ</div>
+            <div class="history-list" id="historyContainer">
+                <div class="history-empty">История пуста</div>
+            </div>
+        </div>
+
+        <div class="footer-note">➕ Нажмите на товар в меню • ➖/➕ в корзине для изменения</div>
+    </div>
+
+    <script>
+        (function() {
+            // --- Данные ---
+            const tables = [1, 2, 3, 4, 5, 6, 7, 8];
+
+            // ВАШИ ПОЗИЦИИ + ГРЕНКИ
+            const products = [
+                { id: 'p1', name: 'Мед черника', price: 0 },
+                { id: 'p2', name: 'Кран банан', price: 0 },
+                { id: 'p3', name: 'Майкл дж', price: 0 },
+                { id: 'p4', name: 'Стаут', price: 0 },
+                { id: 'p5', name: 'Натти нат', price: 0 },
+                { id: 'p6', name: 'Брускетта', price: 0 },
+                { id: 'p7', name: 'пивчики', price: 0 },
+                { id: 'p8', name: 'Чипсы', price: 0 },
+                { id: 'p9', name: 'Чичарон', price: 0 },
+                { id: 'p10', name: 'Карпачо', price: 0 },
+                { id: 'p11', name: 'Картофель фри', price: 0 },
+                { id: 'p12', name: 'Фисташка', price: 0 },
+                { id: 'p13', name: 'Арахис', price: 0 },
+                { id: 'p14', name: 'Сендвич', price: 0 },
+                { id: 'p15', name: 'Гренки', price: 0 }  // 👈 ДОБАВЛЕНЫ ГРЕНКИ
+            ];
+
+            // --- Состояние приложения ---
+            let orders = {}; // Текущие заказы по столам
+            let orderHistory = []; // История всех подтверждённых заказов
+            let currentTable = null;
+
+            // DOM элементы
+            const tablesContainer = document.getElementById('tablesContainer');
+            const productsContainer = document.getElementById('productsContainer');
+            const orderItemsContainer = document.getElementById('orderItemsContainer');
+            const currentTableLabel = document.getElementById('currentTableLabel');
+            const clearBtn = document.getElementById('clearOrderBtn');
+            const confirmBtn = document.getElementById('confirmOrderBtn');
+            const totalSumElement = document.getElementById('totalSum');
+            const historyContainer = document.getElementById('historyContainer');
+            const tabCurrent = document.getElementById('tabCurrent');
+            const tabHistory = document.getElementById('tabHistory');
+            const currentSection = document.getElementById('currentSection');
+            const historySection = document.getElementById('historySection');
+
+            // --- Загрузка из localStorage ---
+            function loadFromStorage() {
+                const savedHistory = localStorage.getItem('orderHistory');
+                if (savedHistory) {
+                    try {
+                        orderHistory = JSON.parse(savedHistory);
+                    } catch (e) {
+                        console.error('Ошибка загрузки истории', e);
+                    }
+                }
+            }
+
+            // --- Сохранение в localStorage ---
+            function saveToStorage() {
+                localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+            }
+
+            // --- Вспомогательные функции ---
+            function getCurrentOrder() {
+                if (currentTable === null) return {};
+                if (!orders[currentTable]) {
+                    orders[currentTable] = {};
+                }
+                return orders[currentTable];
+            }
+
+            function setCurrentOrder(orderObj) {
+                if (currentTable !== null) {
+                    orders[currentTable] = orderObj;
+                }
+            }
+
+            // Подсчёт общей суммы
+            function calculateTotal(order) {
+                let total = 0;
+                for (let productId in order) {
+                    const count = order[productId];
+                    const product = products.find(p => p.id === productId);
+                    if (product) {
+                        total += product.price * count;
+                    }
+                }
+                return total;
+            }
+
+            // Форматирование времени
+            function formatTime() {
+                const now = new Date();
+                return now.toLocaleString('ru-RU', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+
+            // --- Переключение табов ---
+            tabCurrent.addEventListener('click', () => {
+                tabCurrent.classList.add('active');
+                tabHistory.classList.remove('active');
+                currentSection.classList.add('active');
+                historySection.classList.remove('active');
+            });
+
+            tabHistory.addEventListener('click', () => {
+                tabHistory.classList.add('active');
+                tabCurrent.classList.remove('active');
+                historySection.classList.add('active');
+                currentSection.classList.remove('active');
+                renderHistory();
+            });
+
+            // --- Подтверждение заказа ---
+            confirmBtn.addEventListener('click', () => {
+                if (currentTable === null) {
+                    alert('Выберите стол');
+                    return;
+                }
+
+                const order = getCurrentOrder();
+                if (Object.keys(order).length === 0) {
+                    alert('Заказ пуст');
+                    return;
+                }
+
+                // Создаём запись в истории
+                const historyItem = {
+                    id: Date.now(),
+                    table: currentTable,
+                    time: formatTime(),
+                    items: { ...order },
+                    total: calculateTotal(order)
+                };
+
+                orderHistory.unshift(historyItem); // Добавляем в начало
+                saveToStorage();
+
+                // Очищаем текущий заказ
+                orders[currentTable] = {};
+                renderOrder();
+
+                alert(`Заказ для стола ${currentTable} подтверждён и сохранён в истории`);
+            });
+
+            // --- Рендер истории ---
+            function renderHistory() {
+                if (orderHistory.length === 0) {
+                    historyContainer.innerHTML = '<div class="history-empty">История пуста</div>';
+                    return;
+                }
+
+                let html = '';
+                orderHistory.forEach(item => {
+                    // Формируем список позиций
+                    let itemsList = '';
+                    for (let productId in item.items) {
+                        const count = item.items[productId];
+                        const product = products.find(p => p.id === productId);
+                        if (product) {
+                            itemsList += `${product.name} x${count}, `;
+                        }
+                    }
+                    itemsList = itemsList.slice(0, -2); // Убираем последнюю запятую
+
+                    html += `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <span class="history-table">Стол ${item.table}</span>
+                                <span class="history-time">${item.time}</span>
+                            </div>
+                            <div class="history-items">${itemsList}</div>
+                            <div class="history-total">Итого: ${item.total}₽</div>
+                        </div>
+                    `;
+                });
+
+                historyContainer.innerHTML = html;
+            }
+
+            function renderAll() {
+                renderTables();
+                renderProducts();
+                renderOrder();
+            }
+
+            function renderTables() {
+                let html = '';
+                tables.forEach(t => {
+                    const activeClass = (currentTable === t) ? 'active' : '';
+                    html += `<button class="table-btn ${activeClass}" data-table="${t}">Стол ${t}</button>`;
+                });
+                tablesContainer.innerHTML = html;
+
+                document.querySelectorAll('.table-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const tableNum = parseInt(e.currentTarget.dataset.table, 10);
+                        if (currentTable === tableNum) return;
+                        
+                        currentTable = tableNum;
+                        if (!orders[currentTable]) {
+                            orders[currentTable] = {};
+                        }
+                        renderAll();
+                    });
+                });
+            }
+
+            function renderProducts() {
+                let html = '';
+                products.forEach(p => {
+                    html += `
+                        <button class="product-btn" data-product-id="${p.id}">
+                            <span class="product-name">${p.name}</span>
+                            <span class="product-price">${p.price}₽</span>
+                        </button>
+                    `;
+                });
+                productsContainer.innerHTML = html;
+
+                document.querySelectorAll('.product-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const productId = e.currentTarget.dataset.productId;
+                        handleAddProduct(productId);
+                    });
+                });
+            }
+
+            function handleAddProduct(productId) {
+                if (currentTable === null) {
+                    alert('❗ Сначала выберите стол');
+                    return;
+                }
+
+                const order = getCurrentOrder();
+
+                if (order[productId]) {
+                    order[productId] += 1;
+                } else {
+                    order[productId] = 1;
+                }
+
+                setCurrentOrder(order);
+                renderOrder();
+            }
+
+            function handleIncrease(productId) {
+                const order = getCurrentOrder();
+                order[productId] = (order[productId] || 0) + 1;
+                setCurrentOrder(order);
+                renderOrder();
+            }
+
+            function handleDecrease(productId) {
+                const order = getCurrentOrder();
+                if (order[productId] > 1) {
+                    order[productId] -= 1;
+                } else {
+                    delete order[productId];
+                }
+                setCurrentOrder(order);
+                renderOrder();
+            }
+
+            function renderOrder() {
+                if (currentTable !== null) {
+                    currentTableLabel.textContent = `Стол ${currentTable}`;
+                } else {
+                    currentTableLabel.textContent = 'Стол не выбран';
+                }
+
+                const order = getCurrentOrder();
+
+                if (currentTable === null || Object.keys(order).length === 0) {
+                    orderItemsContainer.innerHTML = '<div class="empty-cart">➕ Нажмите на товар, чтобы добавить</div>';
+                    totalSumElement.textContent = 'Итого: 0₽';
+                    return;
+                }
+
+                let html = '';
+                let total = 0;
+                
+                for (let productId in order) {
+                    const count = order[productId];
+                    if (count <= 0) continue;
+
+                    const product = products.find(p => p.id === productId);
+                    const productName = product ? product.name : productId;
+                    const productPrice = product ? product.price : 0;
+                    total += productPrice * count;
+
+                    html += `
+                        <div class="order-row">
+                            <span class="item-name">${productName}</span>
+                            <div class="item-controls">
+                                <button class="qty-btn minus" data-product-id="${productId}" data-action="decrease">−</button>
+                                <span class="item-qty">${count}</span>
+                                <button class="qty-btn plus" data-product-id="${productId}" data-action="increase">+</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (html === '') {
+                    html = '<div class="empty-cart">➕ Нажмите на товар, чтобы добавить</div>';
+                }
+
+                orderItemsContainer.innerHTML = html;
+                totalSumElement.textContent = `Итого: ${total}₽`;
+
+                document.querySelectorAll('.qty-btn.plus').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const productId = btn.dataset.productId;
+                        handleIncrease(productId);
+                    });
+                });
+
+                document.querySelectorAll('.qty-btn.minus').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const productId = btn.dataset.productId;
+                        handleDecrease(productId);
+                    });
+                });
+            }
+
+            function clearCurrentOrder() {
+                if (currentTable === null) {
+                    alert('Выберите стол');
+                    return;
+                }
+
+                if (confirm('Очистить заказ?')) {
+                    orders[currentTable] = {};
+                    renderOrder();
+                }
+            }
+
+            // --- Инициализация ---
+            loadFromStorage();
+            
+            if (tables.length > 0) {
+                currentTable = tables[0];
+                if (!orders[currentTable]) orders[currentTable] = {};
+            }
+
+            renderAll();
+            renderHistory();
+
+            clearBtn.addEventListener('click', clearCurrentOrder);
+
+        })();
+    </script>
+</body>
+</html>
