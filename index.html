@@ -385,6 +385,13 @@
             font-size: 1.2rem;
         }
 
+        .loading {
+            text-align: center;
+            color: #0984e3;
+            padding: 20px;
+            font-size: 1.2rem;
+        }
+
         .footer-note {
             text-align: center;
             color: #a0a0a0;
@@ -392,6 +399,8 @@
             margin-top: 16px;
         }
     </style>
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="app">
@@ -442,7 +451,7 @@
         <div class="section" id="historySection">
             <div class="section-label">ИСТОРИЯ ЗАКАЗОВ</div>
             <div class="history-list" id="historyContainer">
-                <div class="history-empty">История пуста</div>
+                <div class="loading">Загрузка истории...</div>
             </div>
         </div>
 
@@ -451,10 +460,19 @@
 
     <script>
         (function() {
+            // ============================================
+            // НАСТРОЙТЕ ЭТИ ДАННЫЕ ИЗ SUPABASE
+            // ============================================
+            const SUPABASE_URL = 'https://sbogpobfdlpxjdtbbmln.supabase.co';
+            const SUPABASE_KEY = 'sb_publishable_Jd2iPn2HX3IDw-sqxhXhwA_mc1W2pHY';               // Вставьте ваш anon key
+            
+            // Создаем клиент Supabase
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
             // --- Данные ---
             const tables = [1, 2, 3, 4, 5, 6, 7, 8];
 
-            // ВАШИ ПОЗИЦИИ + ГРЕНКИ
+            // ВАШИ ПОЗИЦИИ + ЛАГЕР + ХЕЛЕС
             const products = [
                 { id: 'p1', name: 'Мед черника', price: 0 },
                 { id: 'p2', name: 'Кран банан', price: 0 },
@@ -470,7 +488,9 @@
                 { id: 'p12', name: 'Фисташка', price: 0 },
                 { id: 'p13', name: 'Арахис', price: 0 },
                 { id: 'p14', name: 'Сендвич', price: 0 },
-                { id: 'p15', name: 'Гренки', price: 0 }  // 👈 ДОБАВЛЕНЫ ГРЕНКИ
+                { id: 'p15', name: 'Гренки', price: 0 },
+                { id: 'p16', name: 'Лагер', price: 0 },      // 👈 НОВЫЙ ПРОДУКТ
+                { id: 'p17', name: 'Хелес', price: 0 }        // 👈 НОВЫЙ ПРОДУКТ
             ];
 
             // --- Состояние приложения ---
@@ -492,21 +512,70 @@
             const currentSection = document.getElementById('currentSection');
             const historySection = document.getElementById('historySection');
 
-            // --- Загрузка из localStorage ---
-            function loadFromStorage() {
-                const savedHistory = localStorage.getItem('orderHistory');
-                if (savedHistory) {
-                    try {
-                        orderHistory = JSON.parse(savedHistory);
-                    } catch (e) {
-                        console.error('Ошибка загрузки истории', e);
+            // --- Загрузка истории из Supabase ---
+            async function loadHistoryFromDB() {
+                try {
+                    const { data, error } = await supabase
+                        .from('orders')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) {
+                        console.error('Ошибка загрузки из Supabase:', error);
+                        return [];
                     }
+
+                    // Преобразуем данные в формат нашего приложения
+                    return data.map(item => ({
+                        id: item.id,
+                        table: item.table_number,
+                        time: new Date(item.created_at).toLocaleString('ru-RU', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        }),
+                        items: item.items,
+                        total: item.total
+                    }));
+                } catch (e) {
+                    console.error('Ошибка:', e);
+                    return [];
                 }
             }
 
-            // --- Сохранение в localStorage ---
-            function saveToStorage() {
-                localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+            // --- Сохранение заказа в Supabase ---
+            async function saveOrderToDB(tableNumber, items, total) {
+                try {
+                    const { data, error } = await supabase
+                        .from('orders')
+                        .insert([
+                            {
+                                table_number: tableNumber,
+                                items: items,
+                                total: total
+                            }
+                        ]);
+
+                    if (error) {
+                        console.error('Ошибка сохранения в Supabase:', error);
+                        alert('Ошибка сохранения заказа');
+                        return false;
+                    }
+                    return true;
+                } catch (e) {
+                    console.error('Ошибка:', e);
+                    return false;
+                }
+            }
+
+            // --- Загрузка истории при открытии вкладки ---
+            async function loadAndRenderHistory() {
+                historyContainer.innerHTML = '<div class="loading">Загрузка истории...</div>';
+                const history = await loadHistoryFromDB();
+                orderHistory = history;
+                renderHistory();
             }
 
             // --- Вспомогательные функции ---
@@ -537,18 +606,6 @@
                 return total;
             }
 
-            // Форматирование времени
-            function formatTime() {
-                const now = new Date();
-                return now.toLocaleString('ru-RU', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                });
-            }
-
             // --- Переключение табов ---
             tabCurrent.addEventListener('click', () => {
                 tabCurrent.classList.add('active');
@@ -557,16 +614,16 @@
                 historySection.classList.remove('active');
             });
 
-            tabHistory.addEventListener('click', () => {
+            tabHistory.addEventListener('click', async () => {
                 tabHistory.classList.add('active');
                 tabCurrent.classList.remove('active');
                 historySection.classList.add('active');
                 currentSection.classList.remove('active');
-                renderHistory();
+                await loadAndRenderHistory();
             });
 
             // --- Подтверждение заказа ---
-            confirmBtn.addEventListener('click', () => {
+            confirmBtn.addEventListener('click', async () => {
                 if (currentTable === null) {
                     alert('Выберите стол');
                     return;
@@ -578,23 +635,17 @@
                     return;
                 }
 
-                // Создаём запись в истории
-                const historyItem = {
-                    id: Date.now(),
-                    table: currentTable,
-                    time: formatTime(),
-                    items: { ...order },
-                    total: calculateTotal(order)
-                };
-
-                orderHistory.unshift(historyItem); // Добавляем в начало
-                saveToStorage();
-
-                // Очищаем текущий заказ
-                orders[currentTable] = {};
-                renderOrder();
-
-                alert(`Заказ для стола ${currentTable} подтверждён и сохранён в истории`);
+                const total = calculateTotal(order);
+                
+                // Сохраняем в Supabase
+                const saved = await saveOrderToDB(currentTable, order, total);
+                
+                if (saved) {
+                    // Очищаем текущий заказ
+                    orders[currentTable] = {};
+                    renderOrder();
+                    alert(`Заказ для стола ${currentTable} подтверждён и сохранён в базе данных`);
+                }
             });
 
             // --- Рендер истории ---
@@ -792,15 +843,13 @@
             }
 
             // --- Инициализация ---
-            loadFromStorage();
-            
             if (tables.length > 0) {
                 currentTable = tables[0];
                 if (!orders[currentTable]) orders[currentTable] = {};
             }
 
             renderAll();
-            renderHistory();
+            loadAndRenderHistory(); // Загружаем историю при старте
 
             clearBtn.addEventListener('click', clearCurrentOrder);
 
