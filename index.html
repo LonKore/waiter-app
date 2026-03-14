@@ -137,6 +137,24 @@
             letter-spacing: 1px;
             color: rgba(255, 255, 255, 0.5);
             margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edit-tables-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .edit-tables-btn:active {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .tables-grid {
@@ -151,7 +169,7 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 600;
             color: white;
             cursor: pointer;
@@ -159,6 +177,12 @@
             touch-action: manipulation;
             box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.3);
             -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8px;
+            word-break: break-word;
         }
 
         .table-btn.active {
@@ -301,6 +325,10 @@
             font-size: 14px;
             font-weight: 500;
             color: rgba(255, 255, 255, 0.8);
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .order-items {
@@ -450,6 +478,10 @@
             color: white;
             font-weight: 600;
             font-size: 14px;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .history-time {
@@ -482,11 +514,6 @@
             border-radius: 20px;
             font-size: 12px;
             color: #fbbf24;
-        }
-
-        .history-item-price {
-            color: #fbbf24;
-            font-weight: 600;
         }
 
         .history-total {
@@ -547,6 +574,8 @@
             max-width: 400px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px black;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .modal-title {
@@ -673,6 +702,90 @@
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
+
+        /* Список столов в настройках */
+        .tables-list {
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .table-edit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+        }
+
+        .table-edit-item input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .table-edit-item input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .delete-table-btn {
+            background: #ef4444;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .delete-table-btn:active {
+            background: #dc2626;
+            transform: scale(0.9);
+        }
+
+        .add-table-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .add-table-form input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .add-table-form button {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 30px;
+            padding: 12px 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .add-table-form button:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -699,7 +812,10 @@
         <div class="section active" id="currentSection">
             <!-- Столы -->
             <div class="tables-section">
-                <div class="section-label">СТОЛЫ</div>
+                <div class="section-label">
+                    СТОЛЫ
+                    <button class="edit-tables-btn" id="editTablesBtn">✎ Редактировать</button>
+                </div>
                 <div class="tables-grid" id="tablesContainer"></div>
             </div>
 
@@ -754,17 +870,17 @@
             <!-- Главное меню настроек -->
             <div id="mainSettingsMenu">
                 <div class="modal-menu">
+                    <div class="modal-menu-item" id="editTablesMenuItem">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7h3v3h-3v-3zm-5 0h3v3H7v-3zm10 0h3v3h-3v-3z"/>
+                        </svg>
+                        Управление столами
+                    </div>
                     <div class="modal-menu-item" id="setPriceMenuItem">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.5 15h-3v-2h3v2zm0-4h-3V7h3v6z"/>
                         </svg>
                         Назначить цену
-                    </div>
-                    <div class="modal-menu-item" id="addTableMenuItem">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7h3v3h-3v-3zm-5 0h3v3H7v-3zm10 0h3v3h-3v-3z"/>
-                        </svg>
-                        Добавить стол
                     </div>
                     <div class="modal-menu-item" id="addProductMenuItem">
                         <svg viewBox="0 0 24 24">
@@ -776,6 +892,19 @@
                 <button class="close-modal" id="closeSettingsBtn">Закрыть</button>
             </div>
 
+            <!-- Подменю: управление столами -->
+            <div class="submodal" id="editTablesSubmenu">
+                <div class="modal-title">🪑 Управление столами</div>
+                <div class="tables-list" id="tablesList"></div>
+                <div class="add-table-form">
+                    <input type="text" id="newTableNameInput" placeholder="Название стола (например: VIP)">
+                    <button id="addTableBtn">+</button>
+                </div>
+                <div class="submodal-buttons" style="margin-top: 20px;">
+                    <button class="submodal-cancel" id="cancelEditTablesBtn">Назад</button>
+                </div>
+            </div>
+
             <!-- Подменю: назначить цену -->
             <div class="submodal" id="setPriceSubmenu">
                 <div class="modal-title">💰 Назначить цену</div>
@@ -784,16 +913,6 @@
                 <div class="submodal-buttons">
                     <button class="submodal-save" id="savePriceBtn">Сохранить</button>
                     <button class="submodal-cancel" id="cancelPriceBtn">Назад</button>
-                </div>
-            </div>
-
-            <!-- Подменю: добавить стол -->
-            <div class="submodal" id="addTableSubmenu">
-                <div class="modal-title">🪑 Добавить стол</div>
-                <input type="number" class="submodal-input" id="newTableInput" placeholder="Номер стола" min="1">
-                <div class="submodal-buttons">
-                    <button class="submodal-save" id="saveTableBtn">Добавить</button>
-                    <button class="submodal-cancel" id="cancelTableBtn">Назад</button>
                 </div>
             </div>
 
@@ -818,11 +937,11 @@
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
             // Данные
-            let tables = [];
+            let tables = []; // теперь это массив объектов { id, name }
             let products = [];
             let orders = {};
             let orderHistory = [];
-            let currentTable = null;
+            let currentTable = null; // теперь хранит id стола
 
             // DOM элементы
             const settingsBtn = document.getElementById('settingsBtn');
@@ -832,16 +951,16 @@
             
             // Подменю
             const setPriceSubmenu = document.getElementById('setPriceSubmenu');
-            const addTableSubmenu = document.getElementById('addTableSubmenu');
             const addProductSubmenu = document.getElementById('addProductSubmenu');
+            const editTablesSubmenu = document.getElementById('editTablesSubmenu');
             
-            // === ЗАГРУЗКА ТАБЛИЦ ИЗ БАЗЫ ===
+            // === ЗАГРУЗКА СТОЛОВ ИЗ БАЗЫ ===
             async function loadTablesFromDB() {
                 try {
                     const { data, error } = await supabase
                         .from('tables')
                         .select('*')
-                        .order('number');
+                        .order('name');
 
                     if (error && error.code === '42P01') {
                         await createTablesTable();
@@ -849,12 +968,12 @@
                     }
 
                     if (data && data.length > 0) {
-                        tables = data.map(t => t.number);
+                        tables = data;
                     } else {
                         // Столы по умолчанию
-                        tables = [1, 2, 3, 4, 5, 6, 7, 8];
-                        for (let num of tables) {
-                            await addTableToDB(num);
+                        const defaultTables = ['1', '2', '3', '4', '5', '6', '7', '8'];
+                        for (let name of defaultTables) {
+                            await addTableToDB(name);
                         }
                     }
                 } catch (e) {
@@ -864,32 +983,56 @@
 
             async function createTablesTable() {
                 try {
-                    const { error } = await supabase.rpc('create_tables_table');
-                    if (error) {
-                        const { error: sqlError } = await supabase.query(`
-                            CREATE TABLE IF NOT EXISTS tables (
-                                id BIGSERIAL PRIMARY KEY,
-                                number INTEGER UNIQUE NOT NULL,
-                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                            );
-                            ALTER TABLE tables ENABLE ROW LEVEL SECURITY;
-                            CREATE POLICY "Enable all for all users" ON tables FOR ALL USING (true);
-                        `);
-                        if (sqlError) throw sqlError;
+                    const { error: sqlError } = await supabase.rpc('create_tables_table', {});
+                    if (sqlError) {
+                        // Создаем через REST если RPC нет
+                        const { error } = await supabase
+                            .from('tables')
+                            .insert([{ name: '1' }]);
+                        if (error) console.error('Ошибка создания таблицы:', error);
                     }
                 } catch (e) {
                     console.error('Ошибка создания таблицы tables:', e);
                 }
             }
 
-            async function addTableToDB(number) {
+            async function addTableToDB(name) {
+                try {
+                    const { data, error } = await supabase
+                        .from('tables')
+                        .insert([{ name }])
+                        .select();
+                    if (error) throw error;
+                    return data[0];
+                } catch (e) {
+                    console.error('Ошибка добавления стола:', e);
+                    return null;
+                }
+            }
+
+            async function updateTableInDB(id, name) {
                 try {
                     const { error } = await supabase
                         .from('tables')
-                        .insert([{ number }]);
+                        .update({ name })
+                        .eq('id', id);
                     if (error) throw error;
                 } catch (e) {
-                    console.error('Ошибка добавления стола:', e);
+                    console.error('Ошибка обновления стола:', e);
+                }
+            }
+
+            async function deleteTableFromDB(id) {
+                try {
+                    const { error } = await supabase
+                        .from('tables')
+                        .delete()
+                        .eq('id', id);
+                    if (error) throw error;
+                    return true;
+                } catch (e) {
+                    console.error('Ошибка удаления стола:', e);
+                    return false;
                 }
             }
 
@@ -920,17 +1063,7 @@
                 try {
                     const { error } = await supabase.rpc('create_products_table');
                     if (error) {
-                        const { error: sqlError } = await supabase.query(`
-                            CREATE TABLE IF NOT EXISTS products (
-                                id BIGSERIAL PRIMARY KEY,
-                                name TEXT NOT NULL,
-                                price INTEGER DEFAULT 0,
-                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                            );
-                            ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-                            CREATE POLICY "Enable all for all users" ON products FOR ALL USING (true);
-                        `);
-                        if (sqlError) throw sqlError;
+                        await createInitialProducts();
                     }
                 } catch (e) {
                     console.error('Ошибка создания таблицы products:', e);
@@ -1006,7 +1139,8 @@
                     
                     return data.map(item => ({
                         id: item.id,
-                        table: item.table_number,
+                        table_id: item.table_id,
+                        table_name: tables.find(t => t.id === item.table_id)?.name || `Стол ${item.table_id}`,
                         time: new Date(item.created_at).toLocaleString('ru-RU', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -1023,11 +1157,11 @@
                 }
             }
 
-            async function saveOrderToDB(tableNumber, items, total) {
+            async function saveOrderToDB(tableId, items, total) {
                 try {
                     const { error } = await supabase
                         .from('orders')
-                        .insert([{ table_number: tableNumber, items, total }]);
+                        .insert([{ table_id: tableId, items, total }]);
                     
                     if (error) throw error;
                     return true;
@@ -1041,14 +1175,15 @@
             function openSubmenu(type) {
                 mainSettingsMenu.style.display = 'none';
                 setPriceSubmenu.classList.remove('active');
-                addTableSubmenu.classList.remove('active');
+                editTablesSubmenu.classList.remove('active');
                 addProductSubmenu.classList.remove('active');
                 
                 if (type === 'price') {
                     setPriceSubmenu.classList.add('active');
                     updatePriceProductSelect();
-                } else if (type === 'table') {
-                    addTableSubmenu.classList.add('active');
+                } else if (type === 'tables') {
+                    editTablesSubmenu.classList.add('active');
+                    renderTablesList();
                 } else if (type === 'product') {
                     addProductSubmenu.classList.add('active');
                 }
@@ -1057,7 +1192,7 @@
             function closeSubmenus() {
                 mainSettingsMenu.style.display = 'block';
                 setPriceSubmenu.classList.remove('active');
-                addTableSubmenu.classList.remove('active');
+                editTablesSubmenu.classList.remove('active');
                 addProductSubmenu.classList.remove('active');
             }
 
@@ -1072,14 +1207,72 @@
                 });
             }
 
+            // Рендер списка столов для редактирования
+            function renderTablesList() {
+                const container = document.getElementById('tablesList');
+                let html = '';
+                
+                tables.forEach(table => {
+                    html += `
+                        <div class="table-edit-item" data-table-id="${table.id}">
+                            <input type="text" class="table-name-input" value="${table.name}" placeholder="Название стола">
+                            <button class="delete-table-btn" onclick="window.deleteTable(${table.id})">×</button>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+
+                // Добавляем обработчики для input
+                document.querySelectorAll('.table-name-input').forEach(input => {
+                    input.addEventListener('change', async (e) => {
+                        const tableItem = e.target.closest('.table-edit-item');
+                        const tableId = parseInt(tableItem.dataset.tableId);
+                        const newName = e.target.value.trim();
+                        
+                        if (newName) {
+                            await updateTableInDB(tableId, newName);
+                            const table = tables.find(t => t.id === tableId);
+                            if (table) table.name = newName;
+                            renderTables();
+                            
+                            // Обновляем отображение текущего стола если нужно
+                            if (currentTable === tableId) {
+                                document.getElementById('currentTableLabel').textContent = newName;
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Удаление стола
+            window.deleteTable = async function(tableId) {
+                if (confirm('Удалить стол?')) {
+                    const deleted = await deleteTableFromDB(tableId);
+                    if (deleted) {
+                        tables = tables.filter(t => t.id !== tableId);
+                        if (currentTable === tableId) {
+                            currentTable = tables.length > 0 ? tables[0].id : null;
+                        }
+                        renderTables();
+                        renderTablesList();
+                    }
+                }
+            };
+
             // === ОБРАБОТЧИКИ НАСТРОЕК ===
+            document.getElementById('editTablesMenuItem').addEventListener('click', () => openSubmenu('tables'));
             document.getElementById('setPriceMenuItem').addEventListener('click', () => openSubmenu('price'));
-            document.getElementById('addTableMenuItem').addEventListener('click', () => openSubmenu('table'));
             document.getElementById('addProductMenuItem').addEventListener('click', () => openSubmenu('product'));
             
             document.getElementById('cancelPriceBtn').addEventListener('click', closeSubmenus);
-            document.getElementById('cancelTableBtn').addEventListener('click', closeSubmenus);
+            document.getElementById('cancelEditTablesBtn').addEventListener('click', closeSubmenus);
             document.getElementById('cancelProductBtn').addEventListener('click', closeSubmenus);
+
+            document.getElementById('editTablesBtn').addEventListener('click', () => {
+                settingsBtn.click();
+                setTimeout(() => openSubmenu('tables'), 300);
+            });
 
             settingsBtn.addEventListener('click', () => {
                 settingsModal.classList.add('active');
@@ -1090,6 +1283,22 @@
                 closeSubmenus();
             });
 
+            // Добавление нового стола
+            document.getElementById('addTableBtn').addEventListener('click', async () => {
+                const input = document.getElementById('newTableNameInput');
+                const name = input.value.trim();
+                
+                if (name) {
+                    const newTable = await addTableToDB(name);
+                    if (newTable) {
+                        tables.push(newTable);
+                        renderTables();
+                        renderTablesList();
+                        input.value = '';
+                    }
+                }
+            });
+
             // Сохранение цены
             document.getElementById('savePriceBtn').addEventListener('click', async () => {
                 const productId = document.getElementById('priceProductSelect').value;
@@ -1097,7 +1306,6 @@
                 
                 await updateProductInDB(productId, { price: newPrice });
                 
-                // Обновляем локальный массив
                 const product = products.find(p => p.id == productId);
                 if (product) product.price = newPrice;
                 
@@ -1105,19 +1313,6 @@
                 renderOrder();
                 closeSubmenus();
                 document.getElementById('newPriceInput').value = '0';
-            });
-
-            // Добавление стола
-            document.getElementById('saveTableBtn').addEventListener('click', async () => {
-                const newTable = parseInt(document.getElementById('newTableInput').value);
-                if (newTable && !tables.includes(newTable)) {
-                    await addTableToDB(newTable);
-                    tables.push(newTable);
-                    tables.sort((a, b) => a - b);
-                    renderTables();
-                    closeSubmenus();
-                    document.getElementById('newTableInput').value = '';
-                }
             });
 
             // Добавление позиции из настроек
@@ -1140,16 +1335,16 @@
             // === РЕНДЕР ===
             function renderTables() {
                 let html = '';
-                tables.forEach(t => {
-                    const activeClass = (currentTable === t) ? 'active' : '';
-                    html += `<button class="table-btn ${activeClass}" data-table="${t}">${t}</button>`;
+                tables.forEach(table => {
+                    const activeClass = (currentTable === table.id) ? 'active' : '';
+                    html += `<button class="table-btn ${activeClass}" data-table-id="${table.id}">${table.name}</button>`;
                 });
                 document.getElementById('tablesContainer').innerHTML = html;
 
                 document.querySelectorAll('.table-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const tableNum = parseInt(e.currentTarget.dataset.table);
-                        currentTable = tableNum;
+                        const tableId = parseInt(e.currentTarget.dataset.tableId);
+                        currentTable = tableId;
                         if (!orders[currentTable]) orders[currentTable] = {};
                         renderAll();
                     });
@@ -1169,7 +1364,6 @@
                 });
                 document.getElementById('productsContainer').innerHTML = html;
 
-                // Обработчик для кнопок товаров
                 document.querySelectorAll('.product-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -1178,7 +1372,6 @@
                     });
                 });
 
-                // Обработчик для крестиков удаления
                 document.querySelectorAll('.delete-product').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         e.stopPropagation();
@@ -1226,8 +1419,9 @@
             }
 
             function renderOrder() {
+                const currentTableObj = tables.find(t => t.id === currentTable);
                 const label = document.getElementById('currentTableLabel');
-                label.textContent = currentTable ? `Стол ${currentTable}` : 'Стол не выбран';
+                label.textContent = currentTableObj ? currentTableObj.name : 'Стол не выбран';
 
                 const order = currentTable ? (orders[currentTable] || {}) : {};
                 
@@ -1308,7 +1502,6 @@
                     groupedByDate[dateStr].push(item);
                 });
 
-                // Сортируем даты (новые сверху)
                 const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
                     const [d1, m1, y1] = a.split('.').map(Number);
                     const [d2, m2, y2] = b.split('.').map(Number);
@@ -1317,12 +1510,9 @@
 
                 for (let date of sortedDates) {
                     const dayItems = groupedByDate[date];
-                    
-                    // Сортируем заказы внутри дня по времени (новые сверху)
                     dayItems.sort((a, b) => b.rawDate - a.rawDate);
                     
                     for (let item of dayItems) {
-                        // Формируем список позиций для превью
                         let itemsList = [];
                         for (let productId in item.items) {
                             const count = item.items[productId];
@@ -1335,7 +1525,7 @@
                         html += `
                             <div class="history-item" data-order-id="${item.id}">
                                 <div class="history-header">
-                                    <span class="history-table">Стол ${item.table}</span>
+                                    <span class="history-table">${item.table_name}</span>
                                     <span class="history-time">${item.time}</span>
                                 </div>
                                 <div class="history-items">
@@ -1352,7 +1542,6 @@
 
                 container.innerHTML = html;
 
-                // Добавляем обработчик клика на заказ
                 document.querySelectorAll('.history-item').forEach(item => {
                     item.addEventListener('click', () => {
                         const orderId = item.dataset.orderId;
@@ -1364,9 +1553,7 @@
                 });
             }
 
-            // Показать детали заказа
             function showOrderDetails(order) {
-                // Создаем модальное окно для деталей
                 const modal = document.createElement('div');
                 modal.className = 'modal active';
                 
@@ -1393,7 +1580,7 @@
 
                 modal.innerHTML = `
                     <div class="modal-content" style="max-width: 400px;">
-                        <div class="modal-title">Заказ стола ${order.table}</div>
+                        <div class="modal-title">${order.table_name}</div>
                         <div style="color: rgba(255,255,255,0.5); margin-bottom: 20px; text-align: center;">${order.time}</div>
                         <div class="order-items" style="margin-bottom: 20px;">
                             ${itemsHtml}
@@ -1467,7 +1654,7 @@
                 await loadTablesFromDB();
                 await loadProductsFromDB();
                 if (tables.length > 0) {
-                    currentTable = tables[0];
+                    currentTable = tables[0].id;
                     if (!orders[currentTable]) orders[currentTable] = {};
                 }
                 renderAll();
