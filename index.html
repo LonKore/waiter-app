@@ -3,197 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Официант: Заказ стола с историей</title>
+    <title>WAITER PRO • Умный официант</title>
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
-            background: #f5f5f5;
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            padding: 16px;
         }
 
         .app {
-            max-width: 600px;
+            max-width: 480px;
             width: 100%;
-            background: white;
-            border-radius: 32px 32px 24px 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-            padding: 20px 16px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 48px;
+            padding: 24px 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        h1 {
-            font-size: 1.9rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-            padding-left: 5px;
-            color: #2d3436;
+        /* Header с шестеренкой */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding: 0 8px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
+        }
+
+        .settings-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .settings-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.97);
+        }
+
+        .settings-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
         }
 
         /* Табы */
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 28px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .tab {
             flex: 1;
-            background: #f0f3f4;
+            padding: 14px 0;
             border: none;
-            border-radius: 40px;
-            padding: 15px 0;
-            font-size: 1.1rem;
+            border-radius: 100px;
+            font-size: 16px;
             font-weight: 600;
-            color: #636e72;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
             cursor: pointer;
             transition: all 0.2s;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .tab.active {
-            background: #0984e3;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             color: white;
+            box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5);
         }
 
         /* Секции */
         .section {
             display: none;
+            animation: fadeIn 0.3s;
         }
 
         .section.active {
             display: block;
         }
 
-        .tables-section {
-            margin-bottom: 24px;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Сетка столов */
         .section-label {
-            font-size: 0.9rem;
+            font-size: 14px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-weight: 500;
-            color: #636e72;
-            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 16px;
         }
 
         .tables-grid {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
+            margin-bottom: 28px;
         }
 
         .table-btn {
-            flex: 0 0 calc(25% - 9px);
-            background: #f0f3f4;
-            border: 2px solid transparent;
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
-            padding: 14px 0;
-            font-size: 1.4rem;
+            font-size: 20px;
             font-weight: 600;
-            color: #2d3436;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            transition: all 0.1s ease;
+            color: white;
             cursor: pointer;
-            text-align: center;
+            transition: all 0.2s;
             touch-action: manipulation;
+            box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            -webkit-tap-highlight-color: transparent;
         }
 
         .table-btn.active {
-            background: #0984e3;
-            color: white;
-            border-color: #0652a0;
-            transform: scale(0.98);
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
         }
 
-        .menu-section {
-            margin-bottom: 24px;
+        .table-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Меню товаров */
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .add-product-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .add-product-btn:active {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .menu-grid {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
-            margin-top: 10px;
+            margin-bottom: 28px;
         }
 
         .product-btn {
-            flex: 1 0 calc(33.333% - 8px);
-            min-width: 110px;
-            background: #fef9e7;
-            border: 1px solid #ffeaa7;
-            border-radius: 28px;
-            padding: 18px 6px;
-            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 18px 8px;
+            color: white;
             font-weight: 500;
-            color: #6c5ce7;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-            transition: background 0.1s;
             cursor: pointer;
+            touch-action: manipulation;
             display: flex;
             flex-direction: column;
             align-items: center;
-            line-height: 1.3;
-            touch-action: manipulation;
+            gap: 6px;
+            transition: all 0.2s;
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .product-btn:active {
-            background: #fdcb6e;
-            color: #2d3436;
-            border-color: #f39c12;
+            background: rgba(59, 130, 246, 0.3);
+            transform: scale(0.97);
         }
 
         .product-name {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #2d3436;
-            margin-bottom: 6px;
+            font-size: 14px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            pointer-events: none;
         }
 
         .product-price {
-            font-size: 1.1rem;
+            font-size: 16px;
             font-weight: 700;
-            color: #00b894;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            pointer-events: none;
         }
 
+        .delete-product {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 24px;
+            height: 24px;
+            background: #ef4444;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+            z-index: 10;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .delete-product:active {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        /* Корзина */
         .order-section {
-            background: #fafafa;
-            border-radius: 28px;
-            padding: 20px 18px;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.02), 0 3px 10px rgba(0,0,0,0.05);
-            margin-bottom: 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .order-header {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 16px;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
         .order-header h3 {
-            font-size: 1.3rem;
+            font-size: 18px;
             font-weight: 600;
-            color: #2d3436;
+            color: white;
         }
 
         .table-indicator {
-            background: #dfe6e9;
-            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
             border-radius: 40px;
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .order-items {
@@ -205,8 +312,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px dashed #b2bec3;
-            font-size: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .order-row:last-child {
@@ -214,236 +320,376 @@
         }
 
         .item-name {
+            color: white;
             font-weight: 500;
-            flex: 2;
         }
 
         .item-controls {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: #f0f3f4;
-            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
             border-radius: 40px;
         }
 
         .qty-btn {
-            background: #0984e3;
-            color: white;
+            width: 32px;
+            height: 32px;
             border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 40px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border-radius: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
             touch-action: manipulation;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .qty-btn.minus {
-            background: #ff7675;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .qty-btn:active {
+            background: #3b82f6;
             transform: scale(0.9);
         }
 
         .item-qty {
-            font-size: 1.3rem;
-            font-weight: 700;
-            min-width: 30px;
+            color: white;
+            font-weight: 600;
+            min-width: 24px;
             text-align: center;
         }
 
         .empty-cart {
-            color: #b2bec3;
+            color: rgba(255, 255, 255, 0.3);
             text-align: center;
-            padding: 20px 0;
-            font-size: 1.2rem;
+            padding: 30px 0;
             font-style: italic;
+        }
+
+        .total-sum {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 40px;
+            padding: 16px 24px;
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
         }
 
         .action-buttons {
             display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 12px;
+        }
+
+        .primary-btn, .clear-btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .primary-btn {
-            background: #00b894;
-            border: none;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            font-size: 1.2rem;
-            font-weight: 600;
-            padding: 15px 20px;
-            flex: 1;
-            border-radius: 60px;
-            box-shadow: 0 8px 12px rgba(0, 184, 148, 0.3);
-            cursor: pointer;
-            transition: background 0.1s;
-            text-align: center;
-            border: 1px solid #00a884;
-            touch-action: manipulation;
-        }
-
-        .primary-btn:active {
-            background: #00a884;
-            transform: scale(0.98);
+            box-shadow: 0 10px 20px -10px #10b981;
         }
 
         .clear-btn {
-            background: #ff7675;
-            border: none;
+            background: rgba(255, 255, 255, 0.1);
             color: white;
-            font-size: 1.2rem;
-            font-weight: 600;
-            padding: 15px 20px;
-            flex: 1;
-            border-radius: 60px;
-            box-shadow: 0 8px 12px rgba(255, 118, 117, 0.3);
-            cursor: pointer;
-            transition: background 0.1s;
-            text-align: center;
-            border: 1px solid #d63031;
-            touch-action: manipulation;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .clear-btn:active {
-            background: #d63031;
-            transform: scale(0.98);
-        }
-
-        .total-sum {
-            background: #00b894;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 40px;
-            font-size: 1.3rem;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 15px;
+        .primary-btn:active, .clear-btn:active {
+            transform: scale(0.97);
         }
 
         /* История */
         .history-list {
             max-height: 500px;
             overflow-y: auto;
+            padding-right: 8px;
         }
 
         .history-item {
-            background: #fafafa;
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 5px solid #0984e3;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
         }
 
         .history-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            font-weight: 600;
+            margin-bottom: 12px;
         }
 
         .history-table {
-            background: #0984e3;
-            color: white;
-            padding: 5px 15px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            padding: 6px 14px;
             border-radius: 30px;
-            font-size: 1.1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
         }
 
         .history-time {
-            color: #636e72;
-            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
         }
 
         .history-items {
-            font-size: 1rem;
-            color: #2d3436;
-            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin-bottom: 12px;
         }
 
         .history-total {
             text-align: right;
+            color: #fbbf24;
             font-weight: 700;
-            color: #00b894;
-            font-size: 1.2rem;
-            border-top: 1px dashed #b2bec3;
-            padding-top: 8px;
+            font-size: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 12px;
         }
 
-        .history-empty {
+        /* Модальное окно настроек */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 48px;
+            padding: 32px 24px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px black;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 28px;
             text-align: center;
-            color: #b2bec3;
-            padding: 40px 0;
-            font-size: 1.2rem;
+        }
+
+        .modal-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .modal-menu-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 18px 24px;
+            color: white;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .modal-menu-item:active {
+            background: #3b82f6;
+            transform: scale(0.98);
+        }
+
+        .modal-menu-item svg {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        .close-modal {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .close-modal:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Подменю */
+        .submodal {
+            display: none;
+        }
+
+        .submodal.active {
+            display: block;
+        }
+
+        .submodal-input, .submodal-select {
+            width: 100%;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .submodal-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 20px center;
+            background-size: 20px;
+        }
+
+        .submodal-input:focus, .submodal-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .submodal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .submodal-save, .submodal-cancel {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .submodal-save {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .submodal-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .loading {
+            color: rgba(255, 255, 255, 0.5);
             text-align: center;
-            color: #0984e3;
-            padding: 20px;
-            font-size: 1.2rem;
+            padding: 40px 0;
         }
 
         .footer-note {
             text-align: center;
-            color: #a0a0a0;
-            font-size: 0.75rem;
-            margin-top: 16px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            margin-top: 24px;
         }
     </style>
-    <!-- Подключаем Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="app">
-        <h1>🍽️ Официант</h1>
+        <!-- Header с шестеренкой -->
+        <div class="header">
+            <h1>WAITER PRO</h1>
+            <button class="settings-btn" id="settingsBtn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"/>
+                    <path d="M19.4 15C18.9 16 18.1 16.7 17.3 17.2L19 20.6L16 21L15.2 18.2C14.3 18.5 13.3 18.7 12.3 18.7C11.3 18.7 10.3 18.5 9.4 18.2L8.6 21L5.6 20.6L7.3 17.2C6.5 16.7 5.7 16 5.2 15L2 14.5L3 11.5L2 8.5L5.2 8C5.7 7 6.5 6.3 7.3 5.8L5.6 2.4L8.6 2L9.4 4.8C10.3 4.5 11.3 4.3 12.3 4.3C13.3 4.3 14.3 4.5 15.2 4.8L16 2L19 2.4L17.3 5.8C18.1 6.3 18.9 7 19.4 8L22 8.5L21 11.5L22 14.5L19.4 15Z"/>
+                </svg>
+                Настройки
+            </button>
+        </div>
 
         <!-- Табы -->
         <div class="tabs">
-            <button class="tab active" id="tabCurrent">Текущий заказ</button>
-            <button class="tab" id="tabHistory">История</button>
+            <button class="tab active" id="tabCurrent">📋 Заказ</button>
+            <button class="tab" id="tabHistory">📜 История</button>
         </div>
 
         <!-- Секция текущего заказа -->
         <div class="section active" id="currentSection">
             <!-- Столы -->
             <div class="tables-section">
-                <div class="section-label">ВЫБЕРИТЕ СТОЛ</div>
+                <div class="section-label">СТОЛЫ</div>
                 <div class="tables-grid" id="tablesContainer"></div>
             </div>
 
-            <!-- Товары (меню) -->
+            <!-- Товары -->
             <div class="menu-section">
-                <div class="section-label">БЛЮДА / НАПИТКИ</div>
+                <div class="menu-header">
+                    <div class="section-label">МЕНЮ</div>
+                    <button class="add-product-btn" id="addProductBtn">
+                        <span>+</span> Добавить
+                    </button>
+                </div>
                 <div class="menu-grid" id="productsContainer"></div>
             </div>
 
-            <!-- Текущий заказ -->
+            <!-- Заказ -->
             <div class="order-section">
                 <div class="order-header">
-                    <h3>📋 Заказ</h3>
+                    <h3>Текущий заказ</h3>
                     <span class="table-indicator" id="currentTableLabel">Стол не выбран</span>
                 </div>
                 <div class="order-items" id="orderItemsContainer">
-                    <div class="empty-cart">➕ Нажмите на товар, чтобы добавить</div>
+                    <div class="empty-cart">Выберите товар</div>
                 </div>
             </div>
 
-            <!-- Общая сумма -->
-            <div class="total-sum" id="totalSum">Итого: 0₽</div>
+            <!-- Итого -->
+            <div class="total-sum" id="totalSum">0 ₽</div>
 
-            <!-- Кнопки управления -->
+            <!-- Кнопки -->
             <div class="action-buttons">
-                <button class="primary-btn" id="confirmOrderBtn">✅ Подтвердить заказ</button>
-                <button class="clear-btn" id="clearOrderBtn">🧹 Очистить</button>
+                <button class="primary-btn" id="confirmOrderBtn">✅ Подтвердить</button>
+                <button class="clear-btn" id="clearOrderBtn">🗑️ Очистить</button>
             </div>
         </div>
 
@@ -451,68 +697,275 @@
         <div class="section" id="historySection">
             <div class="section-label">ИСТОРИЯ ЗАКАЗОВ</div>
             <div class="history-list" id="historyContainer">
-                <div class="loading">Загрузка истории...</div>
+                <div class="loading">Загрузка...</div>
             </div>
         </div>
 
-        <div class="footer-note">➕ Нажмите на товар в меню • ➖/➕ в корзине для изменения</div>
+        <div class="footer-note">Нажмите на товар • +/- в заказе</div>
+    </div>
+
+    <!-- Модальное окно настроек -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-title">⚙️ Настройки</div>
+            
+            <!-- Главное меню настроек -->
+            <div id="mainSettingsMenu">
+                <div class="modal-menu">
+                    <div class="modal-menu-item" id="setPriceMenuItem">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.5 15h-3v-2h3v2zm0-4h-3V7h3v6z"/>
+                        </svg>
+                        Назначить цену
+                    </div>
+                    <div class="modal-menu-item" id="addTableMenuItem">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7h3v3h-3v-3zm-5 0h3v3H7v-3zm10 0h3v3h-3v-3z"/>
+                        </svg>
+                        Добавить стол
+                    </div>
+                    <div class="modal-menu-item" id="addProductMenuItem">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 10h-5v5h-2v-5H8v-2h5V6h2v5h5v2z"/>
+                        </svg>
+                        Добавить позицию
+                    </div>
+                </div>
+                <button class="close-modal" id="closeSettingsBtn">Закрыть</button>
+            </div>
+
+            <!-- Подменю: назначить цену -->
+            <div class="submodal" id="setPriceSubmenu">
+                <div class="modal-title">💰 Назначить цену</div>
+                <select class="submodal-select" id="priceProductSelect"></select>
+                <input type="number" class="submodal-input" id="newPriceInput" placeholder="Новая цена" value="0">
+                <div class="submodal-buttons">
+                    <button class="submodal-save" id="savePriceBtn">Сохранить</button>
+                    <button class="submodal-cancel" id="cancelPriceBtn">Назад</button>
+                </div>
+            </div>
+
+            <!-- Подменю: добавить стол -->
+            <div class="submodal" id="addTableSubmenu">
+                <div class="modal-title">🪑 Добавить стол</div>
+                <input type="number" class="submodal-input" id="newTableInput" placeholder="Номер стола" min="1">
+                <div class="submodal-buttons">
+                    <button class="submodal-save" id="saveTableBtn">Добавить</button>
+                    <button class="submodal-cancel" id="cancelTableBtn">Назад</button>
+                </div>
+            </div>
+
+            <!-- Подменю: добавить позицию -->
+            <div class="submodal" id="addProductSubmenu">
+                <div class="modal-title">🍽️ Добавить позицию</div>
+                <input type="text" class="submodal-input" id="newProductNameInput" placeholder="Название">
+                <input type="number" class="submodal-input" id="newProductPriceInput" placeholder="Цена" value="0">
+                <div class="submodal-buttons">
+                    <button class="submodal-save" id="saveProductFromSettingsBtn">Добавить</button>
+                    <button class="submodal-cancel" id="cancelProductBtn">Назад</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         (function() {
-            // ============================================
-            // НАСТРОЙТЕ ЭТИ ДАННЫЕ ИЗ SUPABASE
-            // ============================================
+            // Supabase config
             const SUPABASE_URL = 'https://sbogpobfdlpxjdtbbmln.supabase.co';
-            const SUPABASE_KEY = 'sb_publishable_Jd2iPn2HX3IDw-sqxhXhwA_mc1W2pHY';               // Вставьте ваш anon key
-            
-            // Создаем клиент Supabase
+            const SUPABASE_KEY = 'sb_publishable_Jd2iPn2HX3IDw-sqxhXhwA_mc1W2pHY';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            // --- Данные ---
-            const tables = [1, 2, 3, 4, 5, 6, 7, 8];
-
-            // ВАШИ ПОЗИЦИИ + ЛАГЕР + ХЕЛЕС
-            const products = [
-                { id: 'p1', name: 'Мед черника', price: 0 },
-                { id: 'p2', name: 'Кран банан', price: 0 },
-                { id: 'p3', name: 'Майкл дж', price: 0 },
-                { id: 'p4', name: 'Стаут', price: 0 },
-                { id: 'p5', name: 'Натти нат', price: 0 },
-                { id: 'p6', name: 'Брускетта', price: 0 },
-                { id: 'p7', name: 'пивчики', price: 0 },
-                { id: 'p8', name: 'Чипсы', price: 0 },
-                { id: 'p9', name: 'Чичарон', price: 0 },
-                { id: 'p10', name: 'Карпачо', price: 0 },
-                { id: 'p11', name: 'Картофель фри', price: 0 },
-                { id: 'p12', name: 'Фисташка', price: 0 },
-                { id: 'p13', name: 'Арахис', price: 0 },
-                { id: 'p14', name: 'Сендвич', price: 0 },
-                { id: 'p15', name: 'Гренки', price: 0 },
-                { id: 'p16', name: 'Лагер', price: 0 },      // 👈 НОВЫЙ ПРОДУКТ
-                { id: 'p17', name: 'Хелес', price: 0 }        // 👈 НОВЫЙ ПРОДУКТ
-            ];
-
-            // --- Состояние приложения ---
-            let orders = {}; // Текущие заказы по столам
-            let orderHistory = []; // История всех подтверждённых заказов
+            // Данные
+            let tables = [];
+            let products = [];
+            let orders = {};
+            let orderHistory = [];
             let currentTable = null;
 
             // DOM элементы
-            const tablesContainer = document.getElementById('tablesContainer');
-            const productsContainer = document.getElementById('productsContainer');
-            const orderItemsContainer = document.getElementById('orderItemsContainer');
-            const currentTableLabel = document.getElementById('currentTableLabel');
-            const clearBtn = document.getElementById('clearOrderBtn');
-            const confirmBtn = document.getElementById('confirmOrderBtn');
-            const totalSumElement = document.getElementById('totalSum');
-            const historyContainer = document.getElementById('historyContainer');
-            const tabCurrent = document.getElementById('tabCurrent');
-            const tabHistory = document.getElementById('tabHistory');
-            const currentSection = document.getElementById('currentSection');
-            const historySection = document.getElementById('historySection');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const mainSettingsMenu = document.getElementById('mainSettingsMenu');
+            
+            // Подменю
+            const setPriceSubmenu = document.getElementById('setPriceSubmenu');
+            const addTableSubmenu = document.getElementById('addTableSubmenu');
+            const addProductSubmenu = document.getElementById('addProductSubmenu');
+            
+            // === ЗАГРУЗКА ТАБЛИЦ ИЗ БАЗЫ ===
+            async function loadTablesFromDB() {
+                try {
+                    const { data, error } = await supabase
+                        .from('tables')
+                        .select('*')
+                        .order('number');
 
-            // --- Загрузка истории из Supabase ---
+                    if (error && error.code === '42P01') {
+                        await createTablesTable();
+                        return;
+                    }
+
+                    if (data && data.length > 0) {
+                        tables = data.map(t => t.number);
+                    } else {
+                        // Столы по умолчанию
+                        tables = [1, 2, 3, 4, 5, 6, 7, 8];
+                        for (let num of tables) {
+                            await addTableToDB(num);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки столов:', e);
+                }
+            }
+
+            async function createTablesTable() {
+                try {
+                    const { error } = await supabase.rpc('create_tables_table');
+                    if (error) {
+                        // Создаем через SQL если RPC нет
+                        const { error: sqlError } = await supabase.query(`
+                            CREATE TABLE IF NOT EXISTS tables (
+                                id BIGSERIAL PRIMARY KEY,
+                                number INTEGER UNIQUE NOT NULL,
+                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                            );
+                            ALTER TABLE tables ENABLE ROW LEVEL SECURITY;
+                            CREATE POLICY "Enable all for all users" ON tables FOR ALL USING (true);
+                        `);
+                        if (sqlError) throw sqlError;
+                    }
+                } catch (e) {
+                    console.error('Ошибка создания таблицы tables:', e);
+                }
+            }
+
+            async function addTableToDB(number) {
+                try {
+                    const { error } = await supabase
+                        .from('tables')
+                        .insert([{ number }]);
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('Ошибка добавления стола:', e);
+                }
+            }
+
+            async function deleteTableFromDB(number) {
+                try {
+                    const { error } = await supabase
+                        .from('tables')
+                        .delete()
+                        .eq('number', number);
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('Ошибка удаления стола:', e);
+                }
+            }
+
+            // === ТОВАРЫ ===
+            async function loadProductsFromDB() {
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .order('id');
+
+                    if (error && error.code === '42P01') {
+                        await createProductsTable();
+                        return;
+                    }
+
+                    if (data && data.length > 0) {
+                        products = data;
+                    } else {
+                        await createInitialProducts();
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки товаров:', e);
+                }
+            }
+
+            async function createProductsTable() {
+                try {
+                    const { error } = await supabase.rpc('create_products_table');
+                    if (error) {
+                        const { error: sqlError } = await supabase.query(`
+                            CREATE TABLE IF NOT EXISTS products (
+                                id BIGSERIAL PRIMARY KEY,
+                                name TEXT NOT NULL,
+                                price INTEGER DEFAULT 0,
+                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                            );
+                            ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+                            CREATE POLICY "Enable all for all users" ON products FOR ALL USING (true);
+                        `);
+                        if (sqlError) throw sqlError;
+                    }
+                } catch (e) {
+                    console.error('Ошибка создания таблицы products:', e);
+                }
+            }
+
+            async function createInitialProducts() {
+                const initialProducts = [
+                    'Мед черника', 'Кран банан', 'Майкл дж', 'Стаут', 'Натти нат',
+                    'Брускетта', 'пивчики', 'Чипсы', 'Чичарон', 'Карпачо',
+                    'Картофель фри', 'Фисташка', 'Арахис', 'Сендвич', 'Гренки',
+                    'Лагер', 'Хелес'
+                ];
+                
+                for (let name of initialProducts) {
+                    await addProductToDB(name, 0);
+                }
+                await loadProductsFromDB();
+            }
+
+            async function addProductToDB(name, price) {
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .insert([{ name, price }])
+                        .select();
+                    
+                    if (error) throw error;
+                    return data[0];
+                } catch (e) {
+                    console.error('Ошибка добавления товара:', e);
+                    return null;
+                }
+            }
+
+            async function updateProductInDB(id, updates) {
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .update(updates)
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('Ошибка обновления товара:', e);
+                }
+            }
+
+            async function deleteProductFromDB(id) {
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    return true;
+                } catch (e) {
+                    console.error('Ошибка удаления товара:', e);
+                    return false;
+                }
+            }
+
+            // === ЗАКАЗЫ ===
             async function loadHistoryFromDB() {
                 try {
                     const { data, error } = await supabase
@@ -520,192 +973,151 @@
                         .select('*')
                         .order('created_at', { ascending: false });
 
-                    if (error) {
-                        console.error('Ошибка загрузки из Supabase:', error);
-                        return [];
-                    }
-
-                    // Преобразуем данные в формат нашего приложения
+                    if (error) throw error;
+                    
                     return data.map(item => ({
                         id: item.id,
                         table: item.table_number,
                         time: new Date(item.created_at).toLocaleString('ru-RU', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
+                            hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
                         }),
                         items: item.items,
                         total: item.total
                     }));
                 } catch (e) {
-                    console.error('Ошибка:', e);
+                    console.error('Ошибка загрузки истории:', e);
                     return [];
                 }
             }
 
-            // --- Сохранение заказа в Supabase ---
             async function saveOrderToDB(tableNumber, items, total) {
                 try {
-                    const { data, error } = await supabase
+                    const { error } = await supabase
                         .from('orders')
-                        .insert([
-                            {
-                                table_number: tableNumber,
-                                items: items,
-                                total: total
-                            }
-                        ]);
-
-                    if (error) {
-                        console.error('Ошибка сохранения в Supabase:', error);
-                        alert('Ошибка сохранения заказа');
-                        return false;
-                    }
+                        .insert([{ table_number: tableNumber, items, total }]);
+                    
+                    if (error) throw error;
                     return true;
                 } catch (e) {
-                    console.error('Ошибка:', e);
+                    console.error('Ошибка сохранения заказа:', e);
                     return false;
                 }
             }
 
-            // --- Загрузка истории при открытии вкладки ---
-            async function loadAndRenderHistory() {
-                historyContainer.innerHTML = '<div class="loading">Загрузка истории...</div>';
-                const history = await loadHistoryFromDB();
-                orderHistory = history;
-                renderHistory();
-            }
-
-            // --- Вспомогательные функции ---
-            function getCurrentOrder() {
-                if (currentTable === null) return {};
-                if (!orders[currentTable]) {
-                    orders[currentTable] = {};
-                }
-                return orders[currentTable];
-            }
-
-            function setCurrentOrder(orderObj) {
-                if (currentTable !== null) {
-                    orders[currentTable] = orderObj;
-                }
-            }
-
-            // Подсчёт общей суммы
-            function calculateTotal(order) {
-                let total = 0;
-                for (let productId in order) {
-                    const count = order[productId];
-                    const product = products.find(p => p.id === productId);
-                    if (product) {
-                        total += product.price * count;
-                    }
-                }
-                return total;
-            }
-
-            // --- Переключение табов ---
-            tabCurrent.addEventListener('click', () => {
-                tabCurrent.classList.add('active');
-                tabHistory.classList.remove('active');
-                currentSection.classList.add('active');
-                historySection.classList.remove('active');
-            });
-
-            tabHistory.addEventListener('click', async () => {
-                tabHistory.classList.add('active');
-                tabCurrent.classList.remove('active');
-                historySection.classList.add('active');
-                currentSection.classList.remove('active');
-                await loadAndRenderHistory();
-            });
-
-            // --- Подтверждение заказа ---
-            confirmBtn.addEventListener('click', async () => {
-                if (currentTable === null) {
-                    alert('Выберите стол');
-                    return;
-                }
-
-                const order = getCurrentOrder();
-                if (Object.keys(order).length === 0) {
-                    alert('Заказ пуст');
-                    return;
-                }
-
-                const total = calculateTotal(order);
+            // === UI ФУНКЦИИ ===
+            function openSubmenu(type) {
+                mainSettingsMenu.style.display = 'none';
+                setPriceSubmenu.classList.remove('active');
+                addTableSubmenu.classList.remove('active');
+                addProductSubmenu.classList.remove('active');
                 
-                // Сохраняем в Supabase
-                const saved = await saveOrderToDB(currentTable, order, total);
-                
-                if (saved) {
-                    // Очищаем текущий заказ
-                    orders[currentTable] = {};
-                    renderOrder();
-                    alert(`Заказ для стола ${currentTable} подтверждён и сохранён в базе данных`);
+                if (type === 'price') {
+                    setPriceSubmenu.classList.add('active');
+                    updatePriceProductSelect();
+                } else if (type === 'table') {
+                    addTableSubmenu.classList.add('active');
+                } else if (type === 'product') {
+                    addProductSubmenu.classList.add('active');
                 }
-            });
+            }
 
-            // --- Рендер истории ---
-            function renderHistory() {
-                if (orderHistory.length === 0) {
-                    historyContainer.innerHTML = '<div class="history-empty">История пуста</div>';
-                    return;
-                }
+            function closeSubmenus() {
+                mainSettingsMenu.style.display = 'block';
+                setPriceSubmenu.classList.remove('active');
+                addTableSubmenu.classList.remove('active');
+                addProductSubmenu.classList.remove('active');
+            }
 
-                let html = '';
-                orderHistory.forEach(item => {
-                    // Формируем список позиций
-                    let itemsList = '';
-                    for (let productId in item.items) {
-                        const count = item.items[productId];
-                        const product = products.find(p => p.id === productId);
-                        if (product) {
-                            itemsList += `${product.name} x${count}, `;
-                        }
-                    }
-                    itemsList = itemsList.slice(0, -2); // Убираем последнюю запятую
-
-                    html += `
-                        <div class="history-item">
-                            <div class="history-header">
-                                <span class="history-table">Стол ${item.table}</span>
-                                <span class="history-time">${item.time}</span>
-                            </div>
-                            <div class="history-items">${itemsList}</div>
-                            <div class="history-total">Итого: ${item.total}₽</div>
-                        </div>
-                    `;
+            function updatePriceProductSelect() {
+                const select = document.getElementById('priceProductSelect');
+                select.innerHTML = '';
+                products.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.textContent = `${p.name} (${p.price}₽)`;
+                    select.appendChild(option);
                 });
-
-                historyContainer.innerHTML = html;
             }
 
-            function renderAll() {
-                renderTables();
+            // === ОБРАБОТЧИКИ НАСТРОЕК ===
+            document.getElementById('setPriceMenuItem').addEventListener('click', () => openSubmenu('price'));
+            document.getElementById('addTableMenuItem').addEventListener('click', () => openSubmenu('table'));
+            document.getElementById('addProductMenuItem').addEventListener('click', () => openSubmenu('product'));
+            
+            document.getElementById('cancelPriceBtn').addEventListener('click', closeSubmenus);
+            document.getElementById('cancelTableBtn').addEventListener('click', closeSubmenus);
+            document.getElementById('cancelProductBtn').addEventListener('click', closeSubmenus);
+
+            settingsBtn.addEventListener('click', () => {
+                settingsModal.classList.add('active');
+            });
+
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsModal.classList.remove('active');
+                closeSubmenus();
+            });
+
+            // Сохранение цены
+            document.getElementById('savePriceBtn').addEventListener('click', async () => {
+                const productId = document.getElementById('priceProductSelect').value;
+                const newPrice = parseInt(document.getElementById('newPriceInput').value) || 0;
+                
+                await updateProductInDB(productId, { price: newPrice });
+                
+                // Обновляем локальный массив
+                const product = products.find(p => p.id == productId);
+                if (product) product.price = newPrice;
+                
                 renderProducts();
                 renderOrder();
-            }
+                closeSubmenus();
+                document.getElementById('newPriceInput').value = '0';
+            });
 
+            // Добавление стола
+            document.getElementById('saveTableBtn').addEventListener('click', async () => {
+                const newTable = parseInt(document.getElementById('newTableInput').value);
+                if (newTable && !tables.includes(newTable)) {
+                    await addTableToDB(newTable);
+                    tables.push(newTable);
+                    tables.sort((a, b) => a - b);
+                    renderTables();
+                    closeSubmenus();
+                    document.getElementById('newTableInput').value = '';
+                }
+            });
+
+            // Добавление позиции из настроек
+            document.getElementById('saveProductFromSettingsBtn').addEventListener('click', async () => {
+                const name = document.getElementById('newProductNameInput').value.trim();
+                const price = parseInt(document.getElementById('newProductPriceInput').value) || 0;
+                
+                if (name) {
+                    const newProduct = await addProductToDB(name, price);
+                    if (newProduct) {
+                        products.push(newProduct);
+                        renderProducts();
+                        closeSubmenus();
+                        document.getElementById('newProductNameInput').value = '';
+                        document.getElementById('newProductPriceInput').value = '0';
+                    }
+                }
+            });
+
+            // === РЕНДЕР ===
             function renderTables() {
                 let html = '';
                 tables.forEach(t => {
                     const activeClass = (currentTable === t) ? 'active' : '';
-                    html += `<button class="table-btn ${activeClass}" data-table="${t}">Стол ${t}</button>`;
+                    html += `<button class="table-btn ${activeClass}" data-table="${t}">${t}</button>`;
                 });
-                tablesContainer.innerHTML = html;
+                document.getElementById('tablesContainer').innerHTML = html;
 
                 document.querySelectorAll('.table-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const tableNum = parseInt(e.currentTarget.dataset.table, 10);
-                        if (currentTable === tableNum) return;
-                        
+                        const tableNum = parseInt(e.currentTarget.dataset.table);
                         currentTable = tableNum;
-                        if (!orders[currentTable]) {
-                            orders[currentTable] = {};
-                        }
+                        if (!orders[currentTable]) orders[currentTable] = {};
                         renderAll();
                     });
                 });
@@ -718,67 +1130,78 @@
                         <button class="product-btn" data-product-id="${p.id}">
                             <span class="product-name">${p.name}</span>
                             <span class="product-price">${p.price}₽</span>
+                            <span class="delete-product" data-product-id="${p.id}">×</span>
                         </button>
                     `;
                 });
-                productsContainer.innerHTML = html;
+                document.getElementById('productsContainer').innerHTML = html;
 
+                // Обработчик для кнопок товаров
                 document.querySelectorAll('.product-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         const productId = e.currentTarget.dataset.productId;
                         handleAddProduct(productId);
+                    });
+                });
+
+                // Обработчик для крестиков удаления
+                document.querySelectorAll('.delete-product').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const productId = e.target.dataset.productId;
+                        if (confirm('Удалить товар?')) {
+                            const deleted = await deleteProductFromDB(productId);
+                            if (deleted) {
+                                products = products.filter(p => p.id != productId);
+                                renderProducts();
+                            }
+                        }
                     });
                 });
             }
 
             function handleAddProduct(productId) {
-                if (currentTable === null) {
-                    alert('❗ Сначала выберите стол');
+                if (!currentTable) {
+                    alert('Выберите стол');
                     return;
                 }
-
-                const order = getCurrentOrder();
-
-                if (order[productId]) {
-                    order[productId] += 1;
-                } else {
-                    order[productId] = 1;
-                }
-
-                setCurrentOrder(order);
+                const order = orders[currentTable] || {};
+                order[productId] = (order[productId] || 0) + 1;
+                orders[currentTable] = order;
                 renderOrder();
             }
 
             function handleIncrease(productId) {
-                const order = getCurrentOrder();
+                if (!currentTable) return;
+                const order = orders[currentTable] || {};
                 order[productId] = (order[productId] || 0) + 1;
-                setCurrentOrder(order);
+                orders[currentTable] = order;
                 renderOrder();
             }
 
             function handleDecrease(productId) {
-                const order = getCurrentOrder();
+                if (!currentTable) return;
+                const order = orders[currentTable] || {};
                 if (order[productId] > 1) {
                     order[productId] -= 1;
                 } else {
                     delete order[productId];
                 }
-                setCurrentOrder(order);
+                orders[currentTable] = order;
                 renderOrder();
             }
 
             function renderOrder() {
-                if (currentTable !== null) {
-                    currentTableLabel.textContent = `Стол ${currentTable}`;
-                } else {
-                    currentTableLabel.textContent = 'Стол не выбран';
-                }
+                const label = document.getElementById('currentTableLabel');
+                label.textContent = currentTable ? `Стол ${currentTable}` : 'Стол не выбран';
 
-                const order = getCurrentOrder();
-
-                if (currentTable === null || Object.keys(order).length === 0) {
-                    orderItemsContainer.innerHTML = '<div class="empty-cart">➕ Нажмите на товар, чтобы добавить</div>';
-                    totalSumElement.textContent = 'Итого: 0₽';
+                const order = currentTable ? (orders[currentTable] || {}) : {};
+                
+                if (!currentTable || Object.keys(order).length === 0) {
+                    document.getElementById('orderItemsContainer').innerHTML = 
+                        '<div class="empty-cart">Выберите товар</div>';
+                    document.getElementById('totalSum').textContent = '0 ₽';
                     return;
                 }
 
@@ -787,72 +1210,152 @@
                 
                 for (let productId in order) {
                     const count = order[productId];
-                    if (count <= 0) continue;
-
-                    const product = products.find(p => p.id === productId);
-                    const productName = product ? product.name : productId;
-                    const productPrice = product ? product.price : 0;
-                    total += productPrice * count;
-
+                    const product = products.find(p => p.id == productId);
+                    if (!product) continue;
+                    
+                    total += product.price * count;
+                    
                     html += `
                         <div class="order-row">
-                            <span class="item-name">${productName}</span>
+                            <span class="item-name">${product.name}</span>
                             <div class="item-controls">
-                                <button class="qty-btn minus" data-product-id="${productId}" data-action="decrease">−</button>
+                                <button class="qty-btn minus" data-product-id="${product.id}">−</button>
                                 <span class="item-qty">${count}</span>
-                                <button class="qty-btn plus" data-product-id="${productId}" data-action="increase">+</button>
+                                <button class="qty-btn plus" data-product-id="${product.id}">+</button>
                             </div>
                         </div>
                     `;
                 }
 
-                if (html === '') {
-                    html = '<div class="empty-cart">➕ Нажмите на товар, чтобы добавить</div>';
-                }
-
-                orderItemsContainer.innerHTML = html;
-                totalSumElement.textContent = `Итого: ${total}₽`;
+                document.getElementById('orderItemsContainer').innerHTML = html;
+                document.getElementById('totalSum').textContent = `${total} ₽`;
 
                 document.querySelectorAll('.qty-btn.plus').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const productId = btn.dataset.productId;
-                        handleIncrease(productId);
-                    });
+                    btn.addEventListener('click', () => handleIncrease(btn.dataset.productId));
                 });
 
                 document.querySelectorAll('.qty-btn.minus').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const productId = btn.dataset.productId;
-                        handleDecrease(productId);
-                    });
+                    btn.addEventListener('click', () => handleDecrease(btn.dataset.productId));
                 });
             }
 
-            function clearCurrentOrder() {
-                if (currentTable === null) {
-                    alert('Выберите стол');
+            function renderAll() {
+                renderTables();
+                renderProducts();
+                renderOrder();
+            }
+
+            async function loadAndRenderHistory() {
+                const container = document.getElementById('historyContainer');
+                container.innerHTML = '<div class="loading">Загрузка...</div>';
+                const history = await loadHistoryFromDB();
+                
+                if (history.length === 0) {
+                    container.innerHTML = '<div class="empty-cart">История пуста</div>';
                     return;
                 }
 
+                let html = '';
+                history.forEach(item => {
+                    let itemsList = [];
+                    for (let productId in item.items) {
+                        const count = item.items[productId];
+                        const product = products.find(p => p.id == productId);
+                        if (product) {
+                            itemsList.push(`${product.name} x${count}`);
+                        }
+                    }
+
+                    html += `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <span class="history-table">Стол ${item.table}</span>
+                                <span class="history-time">${item.time}</span>
+                            </div>
+                            <div class="history-items">${itemsList.join(', ')}</div>
+                            <div class="history-total">${item.total} ₽</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+
+            // === ТАБЫ ===
+            document.getElementById('tabCurrent').addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.getElementById('tabCurrent').classList.add('active');
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById('currentSection').classList.add('active');
+            });
+
+            document.getElementById('tabHistory').addEventListener('click', async () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.getElementById('tabHistory').classList.add('active');
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById('historySection').classList.add('active');
+                await loadAndRenderHistory();
+            });
+
+            // === КНОПКИ ЗАКАЗА ===
+            document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
+                if (!currentTable) {
+                    alert('Выберите стол');
+                    return;
+                }
+                
+                const order = orders[currentTable] || {};
+                if (Object.keys(order).length === 0) {
+                    alert('Заказ пуст');
+                    return;
+                }
+
+                const total = Object.entries(order).reduce((sum, [id, qty]) => {
+                    const product = products.find(p => p.id == id);
+                    return sum + (product?.price || 0) * qty;
+                }, 0);
+
+                const saved = await saveOrderToDB(currentTable, order, total);
+                
+                if (saved) {
+                    orders[currentTable] = {};
+                    renderOrder();
+                    alert('Заказ сохранён');
+                }
+            });
+
+            document.getElementById('clearOrderBtn').addEventListener('click', () => {
+                if (!currentTable) return;
                 if (confirm('Очистить заказ?')) {
                     orders[currentTable] = {};
                     renderOrder();
                 }
+            });
+
+            document.getElementById('addProductBtn').addEventListener('click', () => {
+                settingsBtn.click();
+                setTimeout(() => openSubmenu('product'), 300);
+            });
+
+            // === ИНИЦИАЛИЗАЦИЯ ===
+            async function init() {
+                await loadTablesFromDB();
+                await loadProductsFromDB();
+                if (tables.length > 0) {
+                    currentTable = tables[0];
+                    if (!orders[currentTable]) orders[currentTable] = {};
+                }
+                renderAll();
             }
 
-            // --- Инициализация ---
-            if (tables.length > 0) {
-                currentTable = tables[0];
-                if (!orders[currentTable]) orders[currentTable] = {};
-            }
+            init();
 
-            renderAll();
-            loadAndRenderHistory(); // Загружаем историю при старте
-
-            clearBtn.addEventListener('click', clearCurrentOrder);
-
+            // Закрытие модалки по клику вне
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.classList.remove('active');
+                    closeSubmenus();
+                }
+            });
         })();
     </script>
 </body>
