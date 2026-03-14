@@ -426,6 +426,14 @@
             padding: 16px;
             margin-bottom: 12px;
             backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .history-item:active {
+            background: rgba(59, 130, 246, 0.2);
+            transform: scale(0.98);
         }
 
         .history-header {
@@ -450,9 +458,35 @@
         }
 
         .history-items {
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.9);
             font-size: 14px;
             margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .history-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .history-item-name {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .history-item-qty {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #fbbf24;
+        }
+
+        .history-item-price {
+            color: #fbbf24;
+            font-weight: 600;
         }
 
         .history-total {
@@ -462,6 +496,27 @@
             font-size: 18px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding-top: 12px;
+            margin-top: 8px;
+        }
+
+        .history-empty {
+            color: rgba(255, 255, 255, 0.3);
+            text-align: center;
+            padding: 40px 0;
+            font-style: italic;
+        }
+
+        .loading {
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .footer-note {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            margin-top: 24px;
         }
 
         /* Модальное окно настроек */
@@ -617,19 +672,6 @@
             background: rgba(255, 255, 255, 0.1);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .loading {
-            color: rgba(255, 255, 255, 0.5);
-            text-align: center;
-            padding: 40px 0;
-        }
-
-        .footer-note {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 12px;
-            margin-top: 24px;
         }
     </style>
 </head>
@@ -824,7 +866,6 @@
                 try {
                     const { error } = await supabase.rpc('create_tables_table');
                     if (error) {
-                        // Создаем через SQL если RPC нет
                         const { error: sqlError } = await supabase.query(`
                             CREATE TABLE IF NOT EXISTS tables (
                                 id BIGSERIAL PRIMARY KEY,
@@ -849,18 +890,6 @@
                     if (error) throw error;
                 } catch (e) {
                     console.error('Ошибка добавления стола:', e);
-                }
-            }
-
-            async function deleteTableFromDB(number) {
-                try {
-                    const { error } = await supabase
-                        .from('tables')
-                        .delete()
-                        .eq('number', number);
-                    if (error) throw error;
-                } catch (e) {
-                    console.error('Ошибка удаления стола:', e);
                 }
             }
 
@@ -979,10 +1008,14 @@
                         id: item.id,
                         table: item.table_number,
                         time: new Date(item.created_at).toLocaleString('ru-RU', {
-                            hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit'
                         }),
                         items: item.items,
-                        total: item.total
+                        total: item.total,
+                        rawDate: new Date(item.created_at)
                     }));
                 } catch (e) {
                     console.error('Ошибка загрузки истории:', e);
@@ -1245,39 +1278,132 @@
                 renderOrder();
             }
 
+            // === ИСТОРИЯ ===
             async function loadAndRenderHistory() {
                 const container = document.getElementById('historyContainer');
                 container.innerHTML = '<div class="loading">Загрузка...</div>';
+                
                 const history = await loadHistoryFromDB();
+                orderHistory = history;
                 
                 if (history.length === 0) {
-                    container.innerHTML = '<div class="empty-cart">История пуста</div>';
+                    container.innerHTML = '<div class="history-empty">История пуста</div>';
                     return;
                 }
 
                 let html = '';
+                
+                // Группируем по датам
+                const groupedByDate = {};
                 history.forEach(item => {
-                    let itemsList = [];
-                    for (let productId in item.items) {
-                        const count = item.items[productId];
-                        const product = products.find(p => p.id == productId);
-                        if (product) {
-                            itemsList.push(`${product.name} x${count}`);
-                        }
+                    const dateStr = item.rawDate.toLocaleDateString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                    
+                    if (!groupedByDate[dateStr]) {
+                        groupedByDate[dateStr] = [];
                     }
-
-                    html += `
-                        <div class="history-item">
-                            <div class="history-header">
-                                <span class="history-table">Стол ${item.table}</span>
-                                <span class="history-time">${item.time}</span>
-                            </div>
-                            <div class="history-items">${itemsList.join(', ')}</div>
-                            <div class="history-total">${item.total} ₽</div>
-                        </div>
-                    `;
+                    groupedByDate[dateStr].push(item);
                 });
+
+                // Сортируем даты (новые сверху)
+                const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+                    const [d1, m1, y1] = a.split('.').map(Number);
+                    const [d2, m2, y2] = b.split('.').map(Number);
+                    return new Date(y2, m2-1, d2) - new Date(y1, m1-1, d1);
+                });
+
+                for (let date of sortedDates) {
+                    const dayItems = groupedByDate[date];
+                    
+                    // Сортируем заказы внутри дня по времени (новые сверху)
+                    dayItems.sort((a, b) => b.rawDate - a.rawDate);
+                    
+                    for (let item of dayItems) {
+                        // Формируем список позиций для превью
+                        let itemsList = [];
+                        for (let productId in item.items) {
+                            const count = item.items[productId];
+                            const product = products.find(p => p.id == productId);
+                            if (product) {
+                                itemsList.push(`${product.name} x${count}`);
+                            }
+                        }
+                        
+                        html += `
+                            <div class="history-item" data-order-id="${item.id}">
+                                <div class="history-header">
+                                    <span class="history-table">Стол ${item.table}</span>
+                                    <span class="history-time">${item.time}</span>
+                                </div>
+                                <div class="history-items">
+                                    ${itemsList.map(text => `<div class="history-item-row">
+                                        <span class="history-item-name">${text.split(' x')[0]}</span>
+                                        <span class="history-item-qty">×${text.split('x')[1]}</span>
+                                    </div>`).join('')}
+                                </div>
+                                <div class="history-total">${item.total} ₽</div>
+                            </div>
+                        `;
+                    }
+                }
+
                 container.innerHTML = html;
+
+                // Добавляем обработчик клика на заказ
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const orderId = item.dataset.orderId;
+                        const order = orderHistory.find(o => o.id == orderId);
+                        if (order) {
+                            showOrderDetails(order);
+                        }
+                    });
+                });
+            }
+
+            // Показать детали заказа
+            function showOrderDetails(order) {
+                // Создаем модальное окно для деталей
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                
+                let itemsHtml = '';
+                let total = 0;
+                
+                for (let productId in order.items) {
+                    const count = order.items[productId];
+                    const product = products.find(p => p.id == productId);
+                    if (product) {
+                        const itemTotal = product.price * count;
+                        total += itemTotal;
+                        itemsHtml += `
+                            <div class="order-row">
+                                <span class="item-name">${product.name}</span>
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <span class="item-qty" style="background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 30px;">×${count}</span>
+                                    <span style="color: #fbbf24; font-weight: 600;">${itemTotal} ₽</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 400px;">
+                        <div class="modal-title">Заказ стола ${order.table}</div>
+                        <div style="color: rgba(255,255,255,0.5); margin-bottom: 20px; text-align: center;">${order.time}</div>
+                        <div class="order-items" style="margin-bottom: 20px;">
+                            ${itemsHtml}
+                        </div>
+                        <div class="total-sum" style="margin-bottom: 20px;">${total} ₽</div>
+                        <button class="close-modal" onclick="this.closest('.modal').remove()">Закрыть</button>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
             }
 
             // === ТАБЫ ===
