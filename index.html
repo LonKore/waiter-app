@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>WAITER PRO • Умный официант</title>
-    <!-- Подключаем Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -350,6 +348,7 @@
         .item-name {
             color: white;
             font-weight: 500;
+            flex: 2;
         }
 
         .item-controls {
@@ -404,6 +403,36 @@
             text-align: center;
             margin-bottom: 16px;
             box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .total-sum:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .total-sum.edit-mode {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            padding: 8px 16px;
+        }
+
+        .total-sum input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 30px;
+            padding: 12px 20px;
+            width: 100%;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+            outline: none;
+        }
+
+        .total-sum input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
         }
 
         .action-buttons {
@@ -457,11 +486,16 @@
             cursor: pointer;
             transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
         }
 
-        .history-item:active {
+        .history-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .history-item.editing {
             background: rgba(59, 130, 246, 0.2);
-            transform: scale(0.98);
+            border-color: #3b82f6;
         }
 
         .history-header {
@@ -506,6 +540,7 @@
 
         .history-item-name {
             color: rgba(255, 255, 255, 0.8);
+            flex: 2;
         }
 
         .history-item-qty {
@@ -514,6 +549,97 @@
             border-radius: 20px;
             font-size: 12px;
             color: #fbbf24;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .history-item-price {
+            color: #fbbf24;
+            font-weight: 600;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .history-item-controls {
+            display: flex;
+            gap: 8px;
+            margin-left: 8px;
+        }
+
+        .history-edit-btn {
+            background: #3b82f6;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .history-delete-btn {
+            background: #ef4444;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .history-save-btn {
+            background: #10b981;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .history-cancel-btn {
+            background: #6b7280;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .history-edit-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 4px 8px;
+            color: white;
+            font-size: 14px;
+            width: 60px;
+            text-align: center;
+        }
+
+        .history-edit-input:focus {
+            outline: none;
+            border-color: #3b82f6;
         }
 
         .history-total {
@@ -524,6 +650,15 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding-top: 12px;
             margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-total-edit {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .history-empty {
@@ -546,7 +681,7 @@
             margin-top: 24px;
         }
 
-        /* Модальное окно настроек */
+        /* Модальное окно */
         .modal {
             display: none;
             position: fixed;
@@ -639,68 +774,6 @@
 
         .close-modal:active {
             background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* Подменю */
-        .submodal {
-            display: none;
-        }
-
-        .submodal.active {
-            display: block;
-        }
-
-        .submodal-input, .submodal-select {
-            width: 100%;
-            padding: 18px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-
-        .submodal-select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 20px center;
-            background-size: 20px;
-        }
-
-        .submodal-input:focus, .submodal-select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .submodal-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .submodal-save, .submodal-cancel {
-            flex: 1;
-            padding: 16px;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .submodal-save {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            color: white;
-        }
-
-        .submodal-cancel {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         /* Список столов в настройках */
@@ -841,7 +914,7 @@
                 </div>
             </div>
 
-            <!-- Итого -->
+            <!-- Итого (кликабельно для редактирования) -->
             <div class="total-sum" id="totalSum">0 ₽</div>
 
             <!-- Кнопки -->
@@ -859,7 +932,7 @@
             </div>
         </div>
 
-        <div class="footer-note">Нажмите на товар • +/- в заказе</div>
+        <div class="footer-note">Нажмите на итог • чтобы изменить сумму</div>
     </div>
 
     <!-- Модальное окно настроек -->
@@ -882,18 +955,12 @@
                         </svg>
                         Назначить цену
                     </div>
-                    <div class="modal-menu-item" id="addProductMenuItem">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 10h-5v5h-2v-5H8v-2h5V6h2v5h5v2z"/>
-                        </svg>
-                        Добавить позицию
-                    </div>
                 </div>
                 <button class="close-modal" id="closeSettingsBtn">Закрыть</button>
             </div>
 
             <!-- Подменю: управление столами -->
-            <div class="submodal" id="editTablesSubmenu">
+            <div class="submodal" id="editTablesSubmenu" style="display: none;">
                 <div class="modal-title">🪑 Управление столами</div>
                 <div class="tables-list" id="tablesList"></div>
                 <div class="add-table-form">
@@ -906,7 +973,7 @@
             </div>
 
             <!-- Подменю: назначить цену -->
-            <div class="submodal" id="setPriceSubmenu">
+            <div class="submodal" id="setPriceSubmenu" style="display: none;">
                 <div class="modal-title">💰 Назначить цену</div>
                 <select class="submodal-select" id="priceProductSelect"></select>
                 <input type="number" class="submodal-input" id="newPriceInput" placeholder="Новая цена" value="0">
@@ -915,442 +982,107 @@
                     <button class="submodal-cancel" id="cancelPriceBtn">Назад</button>
                 </div>
             </div>
-
-            <!-- Подменю: добавить позицию -->
-            <div class="submodal" id="addProductSubmenu">
-                <div class="modal-title">🍽️ Добавить позицию</div>
-                <input type="text" class="submodal-input" id="newProductNameInput" placeholder="Название">
-                <input type="number" class="submodal-input" id="newProductPriceInput" placeholder="Цена" value="0">
-                <div class="submodal-buttons">
-                    <button class="submodal-save" id="saveProductFromSettingsBtn">Добавить</button>
-                    <button class="submodal-cancel" id="cancelProductBtn">Назад</button>
-                </div>
-            </div>
         </div>
     </div>
 
     <script>
         (function() {
-            // Supabase config
-            const SUPABASE_URL = 'https://sbogpobfdlpxjdtbbmln.supabase.co';
-            const SUPABASE_KEY = 'sb_publishable_Jd2iPn2HX3IDw-sqxhXhwA_mc1W2pHY';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            // ============================================
+            // НАШИ ТОВАРЫ
+            // ============================================
+            let products = [
+                { id: 'p1', name: 'Мед черника', price: 0 },
+                { id: 'p2', name: 'Кран банан', price: 0 },
+                { id: 'p3', name: 'Майкл дж', price: 0 },
+                { id: 'p4', name: 'Стаут', price: 0 },
+                { id: 'p5', name: 'Натти нат', price: 0 },
+                { id: 'p6', name: 'Брускетта', price: 0 },
+                { id: 'p7', name: 'пивчики', price: 0 },
+                { id: 'p8', name: 'Чипсы', price: 0 },
+                { id: 'p9', name: 'Чичарон', price: 0 },
+                { id: 'p10', name: 'Карпачо', price: 0 },
+                { id: 'p11', name: 'Картофель фри', price: 0 },
+                { id: 'p12', name: 'Фисташка', price: 0 },
+                { id: 'p13', name: 'Арахис', price: 0 },
+                { id: 'p14', name: 'Сендвич', price: 0 },
+                { id: 'p15', name: 'Гренки', price: 0 },
+                { id: 'p16', name: 'Лагер', price: 0 },
+                { id: 'p17', name: 'Хелес', price: 0 }
+            ];
 
-            // Данные
-            let tables = []; // теперь это массив объектов { id, name }
-            let products = [];
+            // Столы
+            let tables = [
+                { id: 't1', name: '1' },
+                { id: 't2', name: '2' },
+                { id: 't3', name: '3' },
+                { id: 't4', name: '4' },
+                { id: 't5', name: '5' },
+                { id: 't6', name: '6' },
+                { id: 't7', name: '7' },
+                { id: 't8', name: '8' }
+            ];
+            
+            // Состояние приложения
             let orders = {};
             let orderHistory = [];
-            let currentTable = null; // теперь хранит id стола
+            let currentTableId = null;
+            let editingTotal = false;
+            let editingOrderId = null;
 
-            // DOM элементы
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsModal = document.getElementById('settingsModal');
-            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-            const mainSettingsMenu = document.getElementById('mainSettingsMenu');
-            
-            // Подменю
-            const setPriceSubmenu = document.getElementById('setPriceSubmenu');
-            const addProductSubmenu = document.getElementById('addProductSubmenu');
-            const editTablesSubmenu = document.getElementById('editTablesSubmenu');
-            
-            // === ЗАГРУЗКА СТОЛОВ ИЗ БАЗЫ ===
-            async function loadTablesFromDB() {
+            // Загружаем данные из localStorage
+            function loadFromStorage() {
                 try {
-                    const { data, error } = await supabase
-                        .from('tables')
-                        .select('*')
-                        .order('name');
-
-                    if (error && error.code === '42P01') {
-                        await createTablesTable();
-                        return;
+                    const savedTables = localStorage.getItem('waiter_tables');
+                    if (savedTables) {
+                        tables = JSON.parse(savedTables);
                     }
-
-                    if (data && data.length > 0) {
-                        tables = data;
-                    } else {
-                        // Столы по умолчанию
-                        const defaultTables = ['1', '2', '3', '4', '5', '6', '7', '8'];
-                        for (let name of defaultTables) {
-                            await addTableToDB(name);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Ошибка загрузки столов:', e);
-                }
-            }
-
-            async function createTablesTable() {
-                try {
-                    const { error: sqlError } = await supabase.rpc('create_tables_table', {});
-                    if (sqlError) {
-                        // Создаем через REST если RPC нет
-                        const { error } = await supabase
-                            .from('tables')
-                            .insert([{ name: '1' }]);
-                        if (error) console.error('Ошибка создания таблицы:', error);
-                    }
-                } catch (e) {
-                    console.error('Ошибка создания таблицы tables:', e);
-                }
-            }
-
-            async function addTableToDB(name) {
-                try {
-                    const { data, error } = await supabase
-                        .from('tables')
-                        .insert([{ name }])
-                        .select();
-                    if (error) throw error;
-                    return data[0];
-                } catch (e) {
-                    console.error('Ошибка добавления стола:', e);
-                    return null;
-                }
-            }
-
-            async function updateTableInDB(id, name) {
-                try {
-                    const { error } = await supabase
-                        .from('tables')
-                        .update({ name })
-                        .eq('id', id);
-                    if (error) throw error;
-                } catch (e) {
-                    console.error('Ошибка обновления стола:', e);
-                }
-            }
-
-            async function deleteTableFromDB(id) {
-                try {
-                    const { error } = await supabase
-                        .from('tables')
-                        .delete()
-                        .eq('id', id);
-                    if (error) throw error;
-                    return true;
-                } catch (e) {
-                    console.error('Ошибка удаления стола:', e);
-                    return false;
-                }
-            }
-
-            // === ТОВАРЫ ===
-            async function loadProductsFromDB() {
-                try {
-                    const { data, error } = await supabase
-                        .from('products')
-                        .select('*')
-                        .order('id');
-
-                    if (error && error.code === '42P01') {
-                        await createProductsTable();
-                        return;
-                    }
-
-                    if (data && data.length > 0) {
-                        products = data;
-                    } else {
-                        await createInitialProducts();
-                    }
-                } catch (e) {
-                    console.error('Ошибка загрузки товаров:', e);
-                }
-            }
-
-            async function createProductsTable() {
-                try {
-                    const { error } = await supabase.rpc('create_products_table');
-                    if (error) {
-                        await createInitialProducts();
-                    }
-                } catch (e) {
-                    console.error('Ошибка создания таблицы products:', e);
-                }
-            }
-
-            async function createInitialProducts() {
-                const initialProducts = [
-                    'Мед черника', 'Кран банан', 'Майкл дж', 'Стаут', 'Натти нат',
-                    'Брускетта', 'пивчики', 'Чипсы', 'Чичарон', 'Карпачо',
-                    'Картофель фри', 'Фисташка', 'Арахис', 'Сендвич', 'Гренки',
-                    'Лагер', 'Хелес'
-                ];
-                
-                for (let name of initialProducts) {
-                    await addProductToDB(name, 0);
-                }
-                await loadProductsFromDB();
-            }
-
-            async function addProductToDB(name, price) {
-                try {
-                    const { data, error } = await supabase
-                        .from('products')
-                        .insert([{ name, price }])
-                        .select();
                     
-                    if (error) throw error;
-                    return data[0];
-                } catch (e) {
-                    console.error('Ошибка добавления товара:', e);
-                    return null;
-                }
-            }
-
-            async function updateProductInDB(id, updates) {
-                try {
-                    const { error } = await supabase
-                        .from('products')
-                        .update(updates)
-                        .eq('id', id);
-                    
-                    if (error) throw error;
-                } catch (e) {
-                    console.error('Ошибка обновления товара:', e);
-                }
-            }
-
-            async function deleteProductFromDB(id) {
-                try {
-                    const { error } = await supabase
-                        .from('products')
-                        .delete()
-                        .eq('id', id);
-                    
-                    if (error) throw error;
-                    return true;
-                } catch (e) {
-                    console.error('Ошибка удаления товара:', e);
-                    return false;
-                }
-            }
-
-            // === ЗАКАЗЫ ===
-            async function loadHistoryFromDB() {
-                try {
-                    const { data, error } = await supabase
-                        .from('orders')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-
-                    if (error) throw error;
-                    
-                    return data.map(item => ({
-                        id: item.id,
-                        table_id: item.table_id,
-                        table_name: tables.find(t => t.id === item.table_id)?.name || `Стол ${item.table_id}`,
-                        time: new Date(item.created_at).toLocaleString('ru-RU', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            day: '2-digit',
-                            month: '2-digit'
-                        }),
-                        items: item.items,
-                        total: item.total,
-                        rawDate: new Date(item.created_at)
-                    }));
-                } catch (e) {
-                    console.error('Ошибка загрузки истории:', e);
-                    return [];
-                }
-            }
-
-            async function saveOrderToDB(tableId, items, total) {
-                try {
-                    const { error } = await supabase
-                        .from('orders')
-                        .insert([{ table_id: tableId, items, total }]);
-                    
-                    if (error) throw error;
-                    return true;
-                } catch (e) {
-                    console.error('Ошибка сохранения заказа:', e);
-                    return false;
-                }
-            }
-
-            // === UI ФУНКЦИИ ===
-            function openSubmenu(type) {
-                mainSettingsMenu.style.display = 'none';
-                setPriceSubmenu.classList.remove('active');
-                editTablesSubmenu.classList.remove('active');
-                addProductSubmenu.classList.remove('active');
-                
-                if (type === 'price') {
-                    setPriceSubmenu.classList.add('active');
-                    updatePriceProductSelect();
-                } else if (type === 'tables') {
-                    editTablesSubmenu.classList.add('active');
-                    renderTablesList();
-                } else if (type === 'product') {
-                    addProductSubmenu.classList.add('active');
-                }
-            }
-
-            function closeSubmenus() {
-                mainSettingsMenu.style.display = 'block';
-                setPriceSubmenu.classList.remove('active');
-                editTablesSubmenu.classList.remove('active');
-                addProductSubmenu.classList.remove('active');
-            }
-
-            function updatePriceProductSelect() {
-                const select = document.getElementById('priceProductSelect');
-                select.innerHTML = '';
-                products.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = `${p.name} (${p.price}₽)`;
-                    select.appendChild(option);
-                });
-            }
-
-            // Рендер списка столов для редактирования
-            function renderTablesList() {
-                const container = document.getElementById('tablesList');
-                let html = '';
-                
-                tables.forEach(table => {
-                    html += `
-                        <div class="table-edit-item" data-table-id="${table.id}">
-                            <input type="text" class="table-name-input" value="${table.name}" placeholder="Название стола">
-                            <button class="delete-table-btn" onclick="window.deleteTable(${table.id})">×</button>
-                        </div>
-                    `;
-                });
-                
-                container.innerHTML = html;
-
-                // Добавляем обработчики для input
-                document.querySelectorAll('.table-name-input').forEach(input => {
-                    input.addEventListener('change', async (e) => {
-                        const tableItem = e.target.closest('.table-edit-item');
-                        const tableId = parseInt(tableItem.dataset.tableId);
-                        const newName = e.target.value.trim();
-                        
-                        if (newName) {
-                            await updateTableInDB(tableId, newName);
-                            const table = tables.find(t => t.id === tableId);
-                            if (table) table.name = newName;
-                            renderTables();
-                            
-                            // Обновляем отображение текущего стола если нужно
-                            if (currentTable === tableId) {
-                                document.getElementById('currentTableLabel').textContent = newName;
-                            }
-                        }
-                    });
-                });
-            }
-
-            // Удаление стола
-            window.deleteTable = async function(tableId) {
-                if (confirm('Удалить стол?')) {
-                    const deleted = await deleteTableFromDB(tableId);
-                    if (deleted) {
-                        tables = tables.filter(t => t.id !== tableId);
-                        if (currentTable === tableId) {
-                            currentTable = tables.length > 0 ? tables[0].id : null;
-                        }
-                        renderTables();
-                        renderTablesList();
+                    const savedProducts = localStorage.getItem('waiter_products');
+                    if (savedProducts) {
+                        products = JSON.parse(savedProducts);
                     }
-                }
-            };
-
-            // === ОБРАБОТЧИКИ НАСТРОЕК ===
-            document.getElementById('editTablesMenuItem').addEventListener('click', () => openSubmenu('tables'));
-            document.getElementById('setPriceMenuItem').addEventListener('click', () => openSubmenu('price'));
-            document.getElementById('addProductMenuItem').addEventListener('click', () => openSubmenu('product'));
-            
-            document.getElementById('cancelPriceBtn').addEventListener('click', closeSubmenus);
-            document.getElementById('cancelEditTablesBtn').addEventListener('click', closeSubmenus);
-            document.getElementById('cancelProductBtn').addEventListener('click', closeSubmenus);
-
-            document.getElementById('editTablesBtn').addEventListener('click', () => {
-                settingsBtn.click();
-                setTimeout(() => openSubmenu('tables'), 300);
-            });
-
-            settingsBtn.addEventListener('click', () => {
-                settingsModal.classList.add('active');
-            });
-
-            closeSettingsBtn.addEventListener('click', () => {
-                settingsModal.classList.remove('active');
-                closeSubmenus();
-            });
-
-            // Добавление нового стола
-            document.getElementById('addTableBtn').addEventListener('click', async () => {
-                const input = document.getElementById('newTableNameInput');
-                const name = input.value.trim();
-                
-                if (name) {
-                    const newTable = await addTableToDB(name);
-                    if (newTable) {
-                        tables.push(newTable);
-                        renderTables();
-                        renderTablesList();
-                        input.value = '';
+                    
+                    const savedOrders = localStorage.getItem('waiter_orders');
+                    if (savedOrders) {
+                        orders = JSON.parse(savedOrders);
                     }
-                }
-            });
-
-            // Сохранение цены
-            document.getElementById('savePriceBtn').addEventListener('click', async () => {
-                const productId = document.getElementById('priceProductSelect').value;
-                const newPrice = parseInt(document.getElementById('newPriceInput').value) || 0;
-                
-                await updateProductInDB(productId, { price: newPrice });
-                
-                const product = products.find(p => p.id == productId);
-                if (product) product.price = newPrice;
-                
-                renderProducts();
-                renderOrder();
-                closeSubmenus();
-                document.getElementById('newPriceInput').value = '0';
-            });
-
-            // Добавление позиции из настроек
-            document.getElementById('saveProductFromSettingsBtn').addEventListener('click', async () => {
-                const name = document.getElementById('newProductNameInput').value.trim();
-                const price = parseInt(document.getElementById('newProductPriceInput').value) || 0;
-                
-                if (name) {
-                    const newProduct = await addProductToDB(name, price);
-                    if (newProduct) {
-                        products.push(newProduct);
-                        renderProducts();
-                        closeSubmenus();
-                        document.getElementById('newProductNameInput').value = '';
-                        document.getElementById('newProductPriceInput').value = '0';
+                    
+                    const savedHistory = localStorage.getItem('waiter_history');
+                    if (savedHistory) {
+                        orderHistory = JSON.parse(savedHistory);
                     }
+                } catch (e) {
+                    console.error('Ошибка загрузки:', e);
                 }
-            });
+            }
 
-            // === РЕНДЕР ===
+            // Сохраняем всё
+            function saveAll() {
+                localStorage.setItem('waiter_tables', JSON.stringify(tables));
+                localStorage.setItem('waiter_products', JSON.stringify(products));
+                localStorage.setItem('waiter_orders', JSON.stringify(orders));
+                localStorage.setItem('waiter_history', JSON.stringify(orderHistory));
+            }
+
+            // Рендер столов
             function renderTables() {
                 let html = '';
                 tables.forEach(table => {
-                    const activeClass = (currentTable === table.id) ? 'active' : '';
+                    const activeClass = (currentTableId === table.id) ? 'active' : '';
                     html += `<button class="table-btn ${activeClass}" data-table-id="${table.id}">${table.name}</button>`;
                 });
                 document.getElementById('tablesContainer').innerHTML = html;
 
                 document.querySelectorAll('.table-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const tableId = parseInt(e.currentTarget.dataset.tableId);
-                        currentTable = tableId;
-                        if (!orders[currentTable]) orders[currentTable] = {};
+                        const tableId = e.currentTarget.dataset.tableId;
+                        currentTableId = tableId;
                         renderAll();
                     });
                 });
             }
 
+            // Рендер товаров
             function renderProducts() {
                 let html = '';
                 products.forEach(p => {
@@ -1366,96 +1098,110 @@
 
                 document.querySelectorAll('.product-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
+                        if (e.target.classList.contains('delete-product')) return;
                         const productId = e.currentTarget.dataset.productId;
                         handleAddProduct(productId);
                     });
                 });
 
                 document.querySelectorAll('.delete-product').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
+                    btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         const productId = e.target.dataset.productId;
                         if (confirm('Удалить товар?')) {
-                            const deleted = await deleteProductFromDB(productId);
-                            if (deleted) {
-                                products = products.filter(p => p.id != productId);
-                                renderProducts();
-                            }
+                            products = products.filter(p => p.id !== productId);
+                            saveAll();
+                            renderProducts();
                         }
                     });
                 });
             }
 
+            // Добавление товара
             function handleAddProduct(productId) {
-                if (!currentTable) {
+                if (!currentTableId) {
                     alert('Выберите стол');
                     return;
                 }
-                const order = orders[currentTable] || {};
-                order[productId] = (order[productId] || 0) + 1;
-                orders[currentTable] = order;
-                renderOrder();
-            }
 
-            function handleIncrease(productId) {
-                if (!currentTable) return;
-                const order = orders[currentTable] || {};
-                order[productId] = (order[productId] || 0) + 1;
-                orders[currentTable] = order;
-                renderOrder();
-            }
-
-            function handleDecrease(productId) {
-                if (!currentTable) return;
-                const order = orders[currentTable] || {};
-                if (order[productId] > 1) {
-                    order[productId] -= 1;
-                } else {
-                    delete order[productId];
+                if (!orders[currentTableId]) {
+                    orders[currentTableId] = {};
                 }
-                orders[currentTable] = order;
+
+                orders[currentTableId][productId] = (orders[currentTableId][productId] || 0) + 1;
+                saveAll();
                 renderOrder();
             }
 
-            function renderOrder() {
-                const currentTableObj = tables.find(t => t.id === currentTable);
-                const label = document.getElementById('currentTableLabel');
-                label.textContent = currentTableObj ? currentTableObj.name : 'Стол не выбран';
+            // Увеличение количества
+            function handleIncrease(productId) {
+                if (!currentTableId) return;
+                orders[currentTableId][productId] = (orders[currentTableId][productId] || 0) + 1;
+                saveAll();
+                renderOrder();
+            }
 
-                const order = currentTable ? (orders[currentTable] || {}) : {};
+            // Уменьшение количества
+            function handleDecrease(productId) {
+                if (!currentTableId) return;
                 
-                if (!currentTable || Object.keys(order).length === 0) {
+                if (orders[currentTableId][productId] > 1) {
+                    orders[currentTableId][productId] -= 1;
+                } else {
+                    delete orders[currentTableId][productId];
+                }
+                
+                saveAll();
+                renderOrder();
+            }
+
+            // Рендер текущего заказа
+            function renderOrder() {
+                const currentTable = tables.find(t => t.id === currentTableId);
+                const label = document.getElementById('currentTableLabel');
+                label.textContent = currentTable ? currentTable.name : 'Стол не выбран';
+
+                const order = (currentTableId && orders[currentTableId]) ? orders[currentTableId] : {};
+                
+                if (!currentTableId || Object.keys(order).length === 0) {
                     document.getElementById('orderItemsContainer').innerHTML = 
                         '<div class="empty-cart">Выберите товар</div>';
-                    document.getElementById('totalSum').textContent = '0 ₽';
+                    
+                    const totalElement = document.getElementById('totalSum');
+                    if (!editingTotal) {
+                        totalElement.textContent = '0 ₽';
+                    }
                     return;
                 }
 
                 let html = '';
-                let total = 0;
+                let calculatedTotal = 0;
                 
                 for (let productId in order) {
                     const count = order[productId];
-                    const product = products.find(p => p.id == productId);
+                    const product = products.find(p => p.id === productId);
                     if (!product) continue;
                     
-                    total += product.price * count;
+                    calculatedTotal += product.price * count;
                     
                     html += `
                         <div class="order-row">
                             <span class="item-name">${product.name}</span>
                             <div class="item-controls">
-                                <button class="qty-btn minus" data-product-id="${product.id}">−</button>
+                                <button class="qty-btn minus" data-product-id="${productId}">−</button>
                                 <span class="item-qty">${count}</span>
-                                <button class="qty-btn plus" data-product-id="${product.id}">+</button>
+                                <button class="qty-btn plus" data-product-id="${productId}">+</button>
                             </div>
                         </div>
                     `;
                 }
 
                 document.getElementById('orderItemsContainer').innerHTML = html;
-                document.getElementById('totalSum').textContent = `${total} ₽`;
+
+                const totalElement = document.getElementById('totalSum');
+                if (!editingTotal) {
+                    totalElement.textContent = `${calculatedTotal} ₽`;
+                }
 
                 document.querySelectorAll('.qty-btn.plus').forEach(btn => {
                     btn.addEventListener('click', () => handleIncrease(btn.dataset.productId));
@@ -1466,207 +1212,433 @@
                 });
             }
 
-            function renderAll() {
-                renderTables();
-                renderProducts();
-                renderOrder();
+            // Редактирование итога
+            function setupTotalEditing() {
+                const totalElement = document.getElementById('totalSum');
+                
+                totalElement.addEventListener('click', () => {
+                    if (!currentTableId) return;
+                    
+                    const order = orders[currentTableId] || {};
+                    const calculatedTotal = Object.entries(order).reduce((sum, [id, qty]) => {
+                        const product = products.find(p => p.id === id);
+                        return sum + (product?.price || 0) * qty;
+                    }, 0);
+
+                    editingTotal = true;
+                    
+                    totalElement.classList.add('edit-mode');
+                    totalElement.innerHTML = `
+                        <input type="number" id="editTotalInput" value="${calculatedTotal}" placeholder="Сумма">
+                    `;
+
+                    const input = document.getElementById('editTotalInput');
+                    input.focus();
+                    input.select();
+
+                    const saveEdit = () => {
+                        const newTotal = parseInt(input.value) || 0;
+                        
+                        if (newTotal !== calculatedTotal && Object.keys(order).length > 0) {
+                            const diff = newTotal - calculatedTotal;
+                            if (!order['adjustment']) {
+                                order['adjustment'] = 0;
+                            }
+                            order['adjustment'] = (order['adjustment'] || 0) + diff;
+                            saveAll();
+                        }
+                        
+                        totalElement.classList.remove('edit-mode');
+                        totalElement.textContent = `${newTotal} ₽`;
+                        editingTotal = false;
+                    };
+
+                    input.addEventListener('blur', saveEdit);
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveEdit();
+                        }
+                    });
+                });
             }
 
-            // === ИСТОРИЯ ===
-            async function loadAndRenderHistory() {
+            // Рендер истории с возможностью редактирования
+            function renderHistory() {
                 const container = document.getElementById('historyContainer');
-                container.innerHTML = '<div class="loading">Загрузка...</div>';
                 
-                const history = await loadHistoryFromDB();
-                orderHistory = history;
-                
-                if (history.length === 0) {
+                if (orderHistory.length === 0) {
                     container.innerHTML = '<div class="history-empty">История пуста</div>';
                     return;
                 }
 
                 let html = '';
                 
-                // Группируем по датам
-                const groupedByDate = {};
-                history.forEach(item => {
-                    const dateStr = item.rawDate.toLocaleDateString('ru-RU', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                    });
+                [...orderHistory].reverse().forEach((order, index) => {
+                    const originalIndex = orderHistory.length - 1 - index;
+                    const isEditing = editingOrderId === originalIndex;
                     
-                    if (!groupedByDate[dateStr]) {
-                        groupedByDate[dateStr] = [];
-                    }
-                    groupedByDate[dateStr].push(item);
-                });
-
-                const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-                    const [d1, m1, y1] = a.split('.').map(Number);
-                    const [d2, m2, y2] = b.split('.').map(Number);
-                    return new Date(y2, m2-1, d2) - new Date(y1, m1-1, d1);
-                });
-
-                for (let date of sortedDates) {
-                    const dayItems = groupedByDate[date];
-                    dayItems.sort((a, b) => b.rawDate - a.rawDate);
+                    let itemsHtml = '';
+                    let orderTotal = 0;
                     
-                    for (let item of dayItems) {
-                        let itemsList = [];
-                        for (let productId in item.items) {
-                            const count = item.items[productId];
-                            const product = products.find(p => p.id == productId);
+                    if (isEditing) {
+                        // Режим редактирования
+                        for (let productId in order.items) {
+                            const count = order.items[productId];
+                            const product = products.find(p => p.id === productId);
                             if (product) {
-                                itemsList.push(`${product.name} x${count}`);
+                                orderTotal += product.price * count;
+                                itemsHtml += `
+                                    <div class="history-item-row">
+                                        <span class="history-item-name">${product.name}</span>
+                                        <input type="number" class="history-edit-input" value="${count}" 
+                                               data-product-id="${productId}" min="0" style="width: 60px;">
+                                        <span class="history-item-price">${product.price * count} ₽</span>
+                                    </div>
+                                `;
                             }
                         }
                         
-                        html += `
-                            <div class="history-item" data-order-id="${item.id}">
-                                <div class="history-header">
-                                    <span class="history-table">${item.table_name}</span>
-                                    <span class="history-time">${item.time}</span>
-                                </div>
-                                <div class="history-items">
-                                    ${itemsList.map(text => `<div class="history-item-row">
-                                        <span class="history-item-name">${text.split(' x')[0]}</span>
-                                        <span class="history-item-qty">×${text.split('x')[1]}</span>
-                                    </div>`).join('')}
-                                </div>
-                                <div class="history-total">${item.total} ₽</div>
+                        // Кнопки сохранения/отмены
+                        itemsHtml += `
+                            <div class="history-item-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                                <button class="history-save-btn" onclick="window.saveHistoryEdit(${originalIndex})">✓</button>
+                                <button class="history-cancel-btn" onclick="window.cancelHistoryEdit()">✗</button>
+                            </div>
+                        `;
+                    } else {
+                        // Обычный просмотр
+                        for (let productId in order.items) {
+                            const count = order.items[productId];
+                            const product = products.find(p => p.id === productId);
+                            if (product) {
+                                orderTotal += product.price * count;
+                                itemsHtml += `
+                                    <div class="history-item-row">
+                                        <span class="history-item-name">${product.name}</span>
+                                        <span class="history-item-qty">×${count}</span>
+                                        <span class="history-item-price">${product.price * count} ₽</span>
+                                    </div>
+                                `;
+                            }
+                        }
+                        
+                        // Кнопки редактирования/удаления
+                        itemsHtml += `
+                            <div class="history-item-row" style="justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                                <button class="history-edit-btn" onclick="window.startHistoryEdit(${originalIndex})">✎</button>
+                                <button class="history-delete-btn" onclick="window.deleteHistoryItem(${originalIndex})">×</button>
                             </div>
                         `;
                     }
-                }
+                    
+                    html += `
+                        <div class="history-item ${isEditing ? 'editing' : ''}">
+                            <div class="history-header">
+                                <span class="history-table">${order.tableName}</span>
+                                <span class="history-time">${order.time}</span>
+                            </div>
+                            <div class="history-items">
+                                ${itemsHtml}
+                            </div>
+                            <div class="history-total">
+                                <span>Итого:</span>
+                                <span>${order.total || orderTotal} ₽</span>
+                            </div>
+                        </div>
+                    `;
+                });
 
                 container.innerHTML = html;
-
-                document.querySelectorAll('.history-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const orderId = item.dataset.orderId;
-                        const order = orderHistory.find(o => o.id == orderId);
-                        if (order) {
-                            showOrderDetails(order);
-                        }
-                    });
-                });
             }
 
-            function showOrderDetails(order) {
-                const modal = document.createElement('div');
-                modal.className = 'modal active';
+            // Функции для работы с историей
+            window.startHistoryEdit = function(index) {
+                editingOrderId = index;
+                renderHistory();
+            };
+
+            window.cancelHistoryEdit = function() {
+                editingOrderId = null;
+                renderHistory();
+            };
+
+            window.saveHistoryEdit = function(index) {
+                const order = orderHistory[index];
+                const items = {};
                 
-                let itemsHtml = '';
-                let total = 0;
+                // Собираем новые значения из input
+                document.querySelectorAll('.history-edit-input').forEach(input => {
+                    const productId = input.dataset.productId;
+                    const value = parseInt(input.value) || 0;
+                    if (value > 0) {
+                        items[productId] = value;
+                    }
+                });
                 
-                for (let productId in order.items) {
-                    const count = order.items[productId];
-                    const product = products.find(p => p.id == productId);
+                // Обновляем заказ
+                order.items = items;
+                
+                // Пересчитываем сумму
+                let newTotal = 0;
+                for (let productId in items) {
+                    const product = products.find(p => p.id === productId);
                     if (product) {
-                        const itemTotal = product.price * count;
-                        total += itemTotal;
-                        itemsHtml += `
-                            <div class="order-row">
-                                <span class="item-name">${product.name}</span>
-                                <div style="display: flex; gap: 12px; align-items: center;">
-                                    <span class="item-qty" style="background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 30px;">×${count}</span>
-                                    <span style="color: #fbbf24; font-weight: 600;">${itemTotal} ₽</span>
-                                </div>
-                            </div>
-                        `;
+                        newTotal += product.price * items[productId];
                     }
                 }
+                order.total = newTotal;
+                
+                saveAll();
+                editingOrderId = null;
+                renderHistory();
+            };
 
-                modal.innerHTML = `
-                    <div class="modal-content" style="max-width: 400px;">
-                        <div class="modal-title">${order.table_name}</div>
-                        <div style="color: rgba(255,255,255,0.5); margin-bottom: 20px; text-align: center;">${order.time}</div>
-                        <div class="order-items" style="margin-bottom: 20px;">
-                            ${itemsHtml}
-                        </div>
-                        <div class="total-sum" style="margin-bottom: 20px;">${total} ₽</div>
-                        <button class="close-modal" onclick="this.closest('.modal').remove()">Закрыть</button>
-                    </div>
-                `;
+            window.deleteHistoryItem = function(index) {
+                if (confirm('Удалить заказ из истории?')) {
+                    orderHistory.splice(index, 1);
+                    saveAll();
+                    renderHistory();
+                }
+            };
 
-                document.body.appendChild(modal);
-            }
+            // Подтверждение заказа
+            document.getElementById('confirmOrderBtn').addEventListener('click', () => {
+                if (!currentTableId) {
+                    alert('Выберите стол');
+                    return;
+                }
 
-            // === ТАБЫ ===
+                const order = orders[currentTableId];
+                if (!order || Object.keys(order).length === 0) {
+                    alert('Заказ пуст');
+                    return;
+                }
+
+                const currentTable = tables.find(t => t.id === currentTableId);
+                const totalElement = document.getElementById('totalSum');
+                const finalTotal = parseInt(totalElement.textContent.replace('₽', '').trim()) || 0;
+
+                // Сохраняем в историю
+                const historyItem = {
+                    tableName: currentTable.name,
+                    time: new Date().toLocaleString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit'
+                    }),
+                    items: { ...order },
+                    total: finalTotal
+                };
+
+                orderHistory.push(historyItem);
+                
+                // Очищаем текущий заказ
+                delete orders[currentTableId];
+                
+                saveAll();
+                
+                renderOrder();
+                alert('Заказ подтверждён');
+            });
+
+            // Очистка заказа
+            document.getElementById('clearOrderBtn').addEventListener('click', () => {
+                if (!currentTableId) return;
+                
+                if (confirm('Очистить заказ?')) {
+                    delete orders[currentTableId];
+                    saveAll();
+                    renderOrder();
+                }
+            });
+
+            // Переключение табов
             document.getElementById('tabCurrent').addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.getElementById('tabCurrent').classList.add('active');
                 document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                 document.getElementById('currentSection').classList.add('active');
+                editingOrderId = null; // Сбрасываем режим редактирования
             });
 
-            document.getElementById('tabHistory').addEventListener('click', async () => {
+            document.getElementById('tabHistory').addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.getElementById('tabHistory').classList.add('active');
                 document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                 document.getElementById('historySection').classList.add('active');
-                await loadAndRenderHistory();
+                editingOrderId = null;
+                renderHistory();
             });
 
-            // === КНОПКИ ЗАКАЗА ===
-            document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
-                if (!currentTable) {
-                    alert('Выберите стол');
-                    return;
-                }
-                
-                const order = orders[currentTable] || {};
-                if (Object.keys(order).length === 0) {
-                    alert('Заказ пуст');
-                    return;
-                }
+            // === НАСТРОЙКИ ===
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const mainSettingsMenu = document.getElementById('mainSettingsMenu');
+            const editTablesSubmenu = document.getElementById('editTablesSubmenu');
+            const setPriceSubmenu = document.getElementById('setPriceSubmenu');
 
-                const total = Object.entries(order).reduce((sum, [id, qty]) => {
-                    const product = products.find(p => p.id == id);
-                    return sum + (product?.price || 0) * qty;
-                }, 0);
+            settingsBtn.addEventListener('click', () => {
+                settingsModal.classList.add('active');
+            });
 
-                const saved = await saveOrderToDB(currentTable, order, total);
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsModal.classList.remove('active');
+                mainSettingsMenu.style.display = 'block';
+                editTablesSubmenu.style.display = 'none';
+                setPriceSubmenu.style.display = 'none';
+            });
+
+            document.getElementById('editTablesMenuItem').addEventListener('click', () => {
+                mainSettingsMenu.style.display = 'none';
+                editTablesSubmenu.style.display = 'block';
+                renderTablesList();
+            });
+
+            document.getElementById('setPriceMenuItem').addEventListener('click', () => {
+                mainSettingsMenu.style.display = 'none';
+                setPriceSubmenu.style.display = 'block';
+                updatePriceProductSelect();
+            });
+
+            document.getElementById('cancelEditTablesBtn').addEventListener('click', () => {
+                editTablesSubmenu.style.display = 'none';
+                mainSettingsMenu.style.display = 'block';
+            });
+
+            document.getElementById('cancelPriceBtn').addEventListener('click', () => {
+                setPriceSubmenu.style.display = 'none';
+                mainSettingsMenu.style.display = 'block';
+            });
+
+            document.getElementById('editTablesBtn').addEventListener('click', () => {
+                settingsBtn.click();
+                setTimeout(() => {
+                    mainSettingsMenu.style.display = 'none';
+                    editTablesSubmenu.style.display = 'block';
+                    renderTablesList();
+                }, 300);
+            });
+
+            // Рендер списка столов
+            function renderTablesList() {
+                const container = document.getElementById('tablesList');
+                let html = '';
                 
-                if (saved) {
-                    orders[currentTable] = {};
-                    renderOrder();
-                    alert('Заказ сохранён');
+                tables.forEach(table => {
+                    html += `
+                        <div class="table-edit-item" data-table-id="${table.id}">
+                            <input type="text" class="table-name-input" value="${table.name}" placeholder="Название стола">
+                            <button class="delete-table-btn" onclick="window.deleteTable('${table.id}')">×</button>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+
+                document.querySelectorAll('.table-name-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const tableItem = e.target.closest('.table-edit-item');
+                        const tableId = tableItem.dataset.tableId;
+                        const newName = e.target.value.trim();
+                        
+                        if (newName) {
+                            const table = tables.find(t => t.id === tableId);
+                            if (table) {
+                                table.name = newName;
+                                saveAll();
+                                renderTables();
+                            }
+                        }
+                    });
+                });
+            }
+
+            window.deleteTable = function(tableId) {
+                if (confirm('Удалить стол?')) {
+                    tables = tables.filter(t => t.id !== tableId);
+                    if (currentTableId === tableId) {
+                        currentTableId = tables.length > 0 ? tables[0].id : null;
+                    }
+                    saveAll();
+                    renderTables();
+                    renderTablesList();
+                }
+            };
+
+            document.getElementById('addTableBtn').addEventListener('click', () => {
+                const input = document.getElementById('newTableNameInput');
+                const name = input.value.trim();
+                
+                if (name) {
+                    const newId = 't' + Date.now();
+                    tables.push({ id: newId, name });
+                    saveAll();
+                    renderTables();
+                    renderTablesList();
+                    input.value = '';
                 }
             });
 
-            document.getElementById('clearOrderBtn').addEventListener('click', () => {
-                if (!currentTable) return;
-                if (confirm('Очистить заказ?')) {
-                    orders[currentTable] = {};
+            // Назначение цены
+            function updatePriceProductSelect() {
+                const select = document.getElementById('priceProductSelect');
+                select.innerHTML = '';
+                products.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.textContent = `${p.name} (${p.price}₽)`;
+                    select.appendChild(option);
+                });
+            }
+
+            document.getElementById('savePriceBtn').addEventListener('click', () => {
+                const productId = document.getElementById('priceProductSelect').value;
+                const newPrice = parseInt(document.getElementById('newPriceInput').value) || 0;
+                
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                    product.price = newPrice;
+                    saveAll();
+                    renderProducts();
                     renderOrder();
+                    
+                    document.getElementById('newPriceInput').value = '0';
+                    setPriceSubmenu.style.display = 'none';
+                    mainSettingsMenu.style.display = 'block';
                 }
             });
 
             document.getElementById('addProductBtn').addEventListener('click', () => {
-                settingsBtn.click();
-                setTimeout(() => openSubmenu('product'), 300);
+                const name = prompt('Введите название товара:');
+                if (name) {
+                    const price = parseInt(prompt('Введите цену:', '0')) || 0;
+                    const newId = 'p' + (products.length + 1);
+                    products.push({ id: newId, name, price });
+                    saveAll();
+                    renderProducts();
+                }
             });
 
-            // === ИНИЦИАЛИЗАЦИЯ ===
-            async function init() {
-                await loadTablesFromDB();
-                await loadProductsFromDB();
-                if (tables.length > 0) {
-                    currentTable = tables[0].id;
-                    if (!orders[currentTable]) orders[currentTable] = {};
-                }
-                renderAll();
+            // Инициализация
+            loadFromStorage();
+            
+            if (tables.length > 0 && !currentTableId) {
+                currentTableId = tables[0].id;
             }
-
-            init();
+            
+            renderAll();
+            setupTotalEditing();
 
             // Закрытие модалки по клику вне
             settingsModal.addEventListener('click', (e) => {
                 if (e.target === settingsModal) {
                     settingsModal.classList.remove('active');
-                    closeSubmenus();
+                    mainSettingsMenu.style.display = 'block';
+                    editTablesSubmenu.style.display = 'none';
+                    setPriceSubmenu.style.display = 'none';
                 }
             });
         })();
