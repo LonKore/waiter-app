@@ -1,2122 +1,1248 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>WAITER PRO • Умный официант</title>
-    <!-- Подключаем Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-        }
-
-        .app {
-            max-width: 480px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 48px;
-            padding: 24px 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 28px;
-            padding: 0 8px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
-
-        .settings-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 40px;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .settings-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(0.97);
-        }
-
-        .settings-btn svg {
-            width: 20px;
-            height: 20px;
-            fill: none;
-            stroke: white;
-            stroke-width: 2;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 28px;
-            padding: 4px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 100px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .tab {
-            flex: 1;
-            padding: 14px 0;
-            border: none;
-            border-radius: 100px;
-            font-size: 16px;
-            font-weight: 600;
-            background: transparent;
-            color: rgba(255, 255, 255, 0.6);
-            cursor: pointer;
-            transition: all 0.2s;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .tab.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            color: white;
-            box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5);
-        }
-
-        .section {
-            display: none;
-            animation: fadeIn 0.3s;
-        }
-
-        .section.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .section-label {
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .online-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #10b981;
-        }
-
-        .online-dot {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.1); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        .search-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 40px;
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .search-box svg {
-            width: 20px;
-            height: 20px;
-            stroke: rgba(255, 255, 255, 0.5);
-            fill: none;
-        }
-
-        .search-box input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 16px;
-            outline: none;
-        }
-
-        .search-box input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        .filter-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .filter-tab {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .filter-tab.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            color: white;
-            border-color: transparent;
-        }
-
-        .tables-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 28px;
-        }
-
-        .table-btn {
-            aspect-ratio: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            font-size: 16px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            touch-action: manipulation;
-            box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-            -webkit-tap-highlight-color: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 8px;
-            word-break: break-word;
-        }
-
-        .table-btn.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: scale(1.02);
-            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
-        }
-
-        .table-btn:active {
-            transform: scale(0.95);
-        }
-
-        .menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .add-product-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 40px;
-            padding: 10px 20px;
-            color: white;
-            font-weight: 500;
-            font-size: 14px;
-            cursor: pointer;
-            touch-action: manipulation;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .add-product-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .category-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .category-tab {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .category-tab.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            color: white;
-            border-color: transparent;
-        }
-
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 28px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        .product-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 18px 8px;
-            color: white;
-            font-weight: 500;
-            cursor: pointer;
-            touch-action: manipulation;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-            position: relative;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .product-btn:active {
-            background: rgba(59, 130, 246, 0.3);
-            transform: scale(0.97);
-        }
-
-        .product-name {
-            font-size: 14px;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.9);
-            pointer-events: none;
-        }
-
-        .product-price {
-            font-size: 16px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            pointer-events: none;
-        }
-
-        .product-category {
-            position: absolute;
-            top: -6px;
-            left: -6px;
-            background: #3b82f6;
-            color: white;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-        }
-
-        .delete-product {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            width: 24px;
-            height: 24px;
-            background: #ef4444;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            color: white;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            touch-action: manipulation;
-            z-index: 10;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .delete-product:active {
-            background: #dc2626;
-            transform: scale(1.1);
-        }
-
-        .order-section {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 32px;
-            padding: 20px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .order-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .table-indicator {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 14px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.8);
-            max-width: 150px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .order-items {
-            min-height: 60px;
-        }
-
-        .order-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .order-row:last-child {
-            border-bottom: none;
-        }
-
-        .item-name {
-            color: white;
-            font-weight: 500;
-            flex: 2;
-        }
-
-        .item-controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 6px 12px;
-            border-radius: 40px;
-        }
-
-        .qty-btn {
-            width: 32px;
-            height: 32px;
-            border: none;
-            border-radius: 32px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .qty-btn:active {
-            background: #3b82f6;
-            transform: scale(0.9);
-        }
-
-        .item-qty {
-            color: white;
-            font-weight: 600;
-            min-width: 24px;
-            text-align: center;
-        }
-
-        .empty-cart {
-            color: rgba(255, 255, 255, 0.3);
-            text-align: center;
-            padding: 30px 0;
-            font-style: italic;
-        }
-
-        .total-sum {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border-radius: 40px;
-            padding: 16px 24px;
-            color: white;
-            font-size: 20px;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 16px;
-            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .primary-btn, .clear-btn {
-            flex: 1;
-            padding: 16px;
-            border: none;
-            border-radius: 40px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .primary-btn {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            box-shadow: 0 10px 20px -10px #10b981;
-        }
-
-        .clear-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .primary-btn:active, .clear-btn:active {
-            transform: scale(0.97);
-        }
-
-        .history-header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .pin-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 30px;
-            padding: 8px 16px;
-            color: white;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .pin-btn.active {
-            background: #fbbf24;
-            color: #0f172a;
-            border-color: #f59e0b;
-        }
-
-        .pin-btn svg {
-            width: 16px;
-            height: 16px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-        }
-
-        .history-list {
-            max-height: 500px;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-
-        .history-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 16px;
-            margin-bottom: 12px;
-            backdrop-filter: blur(10px);
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-            position: relative;
-        }
-
-        .history-item.pinned {
-            background: rgba(251, 191, 36, 0.1);
-            border-color: #fbbf24;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
-        }
-
-        .history-item.pinned::before {
-            content: '📌';
-            position: absolute;
-            top: -8px;
-            left: -8px;
-            font-size: 16px;
-            background: #fbbf24;
-            color: #0f172a;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid white;
-        }
-
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .history-table {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            padding: 6px 14px;
-            border-radius: 30px;
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            max-width: 150px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .history-time {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 12px;
-        }
-
-        .history-items {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 14px;
-            margin-bottom: 12px;
-            line-height: 1.6;
-        }
-
-        .history-item-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
-        }
-
-        .history-item-name {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .history-item-qty {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            color: #fbbf24;
-        }
-
-        .history-total {
-            text-align: right;
-            color: #fbbf24;
-            font-weight: 700;
-            font-size: 18px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 12px;
-            margin-top: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .history-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .history-action-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .history-action-btn.pin {
-            background: #fbbf24;
-            color: #0f172a;
-        }
-
-        .history-action-btn.edit {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .history-action-btn.delete {
-            background: #ef4444;
-            color: white;
-        }
-
-        .history-action-btn:active {
-            transform: scale(0.9);
-        }
-
-        .history-empty {
-            color: rgba(255, 255, 255, 0.3);
-            text-align: center;
-            padding: 40px 0;
-            font-style: italic;
-        }
-
-        .loading {
-            color: rgba(255, 255, 255, 0.5);
-            text-align: center;
-            padding: 40px 0;
-        }
-
-        .footer-note {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 12px;
-            margin-top: 24px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #1e293b;
-            border-radius: 48px;
-            padding: 32px 24px;
-            width: 100%;
-            max-width: 400px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px black;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 28px;
-            text-align: center;
-        }
-
-        .modal-menu {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 28px;
-        }
-
-        .modal-menu-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 18px 24px;
-            color: white;
-            font-size: 18px;
-            font-weight: 500;
-            cursor: pointer;
-            touch-action: manipulation;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .modal-menu-item:active {
-            background: #3b82f6;
-            transform: scale(0.98);
-        }
-
-        .modal-menu-item svg {
-            width: 24px;
-            height: 24px;
-            fill: none;
-            stroke: white;
-            stroke-width: 2;
-        }
-
-        .close-modal {
-            width: 100%;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 40px;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .close-modal:active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .submodal {
-            display: none;
-        }
-
-        .submodal.active {
-            display: block;
-        }
-
-        .submodal-input, .submodal-select {
-            width: 100%;
-            padding: 18px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 30px;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-
-        .submodal-select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 20px center;
-            background-size: 20px;
-        }
-
-        .submodal-input:focus, .submodal-select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .submodal-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .submodal-save, .submodal-cancel {
-            flex: 1;
-            padding: 16px;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .submodal-save {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            color: white;
-        }
-
-        .submodal-cancel {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .tables-list {
-            margin-bottom: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .table-edit-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-        }
-
-        .table-edit-item input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 8px 12px;
-            color: white;
-            font-size: 14px;
-        }
-
-        .table-edit-item input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .delete-table-btn {
-            background: #ef4444;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            color: white;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .delete-table-btn:active {
-            background: #dc2626;
-            transform: scale(0.9);
-        }
-
-        .add-table-form {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
-        .add-table-form input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 30px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 14px;
-        }
-
-        .add-table-form button {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border: none;
-            border-radius: 30px;
-            padding: 12px 20px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        .add-table-form button:active {
-            transform: scale(0.95);
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            border: 1px solid #3b82f6;
-            border-radius: 40px;
-            padding: 12px 24px;
-            color: white;
-            font-size: 14px;
-            box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5);
-            z-index: 2000;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from { transform: translate(-50%, 100px); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waiter Flow</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --card: rgba(255,255,255,0.06);
+      --card-border: rgba(255,255,255,0.12);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-2: #3b82f6;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --shadow: 0 20px 50px rgba(0,0,0,.35);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(59,130,246,.18), transparent 28%),
+        radial-gradient(circle at top left, rgba(34,197,94,.12), transparent 20%),
+        linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 300px 1fr 380px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(17,24,39,.78);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(18px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-inner { padding: 20px; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .brand h1 {
+      font-size: 28px;
+      letter-spacing: -.03em;
+      line-height: 1;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 13px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(34,197,94,.12);
+    }
+
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .controls-row,
+    .history-toolbar,
+    .menu-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input, select, button, textarea {
+      font: inherit;
+    }
+
+    .input, .select {
+      width: 100%;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .input::placeholder { color: #7c8aa0; }
+
+    .btn {
+      border: none;
+      border-radius: 16px;
+      padding: 12px 16px;
+      cursor: pointer;
+      color: white;
+      font-weight: 700;
+      transition: .18s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary { background: linear-gradient(135deg, #22c55e, #16a34a); }
+    .btn-secondary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .btn-ghost {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.08);
+      color: white;
+    }
+
+    .btn.small { padding: 9px 12px; border-radius: 12px; font-size: 13px; }
+
+    .sidebar-block + .sidebar-block { margin-top: 18px; }
+
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .table-card {
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      min-height: 90px;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .table-card.active {
+      background: linear-gradient(135deg, rgba(59,130,246,.30), rgba(34,197,94,.18));
+      border-color: rgba(59,130,246,.45);
+      box-shadow: inset 0 0 0 1px rgba(59,130,246,.30);
+    }
+
+    .table-card:hover { transform: translateY(-2px); }
+
+    .table-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .table-name { font-weight: 800; font-size: 18px; }
+    .table-meta { color: var(--muted); font-size: 13px; }
+    .table-sum { color: #86efac; font-weight: 800; font-size: 15px; margin-top: 8px; }
+
+    .center-panel-header {
+      padding: 20px 20px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .order-badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(34,197,94,.12);
+      border: 1px solid rgba(34,197,94,.25);
+      color: #bbf7d0;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .menu-toolbar {
+      padding: 20px;
+      padding-top: 18px;
+      align-items: center;
+    }
+
+    .search-grow { flex: 1 1 280px; }
+
+    .categories {
+      display: flex;
+      gap: 10px;
+      padding: 0 20px 18px;
+      flex-wrap: wrap;
+    }
+
+    .category-pill {
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .category-pill.active {
+      color: white;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border-color: transparent;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 14px;
+      padding: 0 20px 20px;
+      max-height: calc(100vh - 220px);
+      overflow: auto;
+    }
+
+    .product-card {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 150px;
+    }
+
+    .product-category {
+      font-size: 12px;
+      color: #cbd5e1;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      width: fit-content;
+      padding: 6px 10px;
+    }
+
+    .product-name {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+      flex: 1;
+    }
+
+    .product-price {
+      color: #fcd34d;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .right-sticky {
+      position: sticky;
+      top: 20px;
+    }
+
+    .order-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 380px;
+      overflow: auto;
+      margin-top: 16px;
+    }
+
+    .order-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+    }
+
+    .order-item-name { font-weight: 700; }
+    .order-item-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qty-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 800;
+      color: white;
+      background: rgba(255,255,255,.12);
+    }
+
+    .qty-value {
+      min-width: 24px;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .summary-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(34,197,94,.15), rgba(59,130,246,.15));
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+
+    .summary-row.total {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      color: white;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,.12);
+      border-radius: 18px;
+      background: rgba(255,255,255,.03);
+    }
+
+    .history-wrap { margin-top: 18px; }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 360px;
+      overflow: auto;
+      margin-top: 16px;
+    }
+
+    .history-card {
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .history-card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .history-card-title {
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .history-card-time {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .history-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #dbeafe;
+      font-size: 14px;
+    }
+
+    .history-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .history-footer {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .total-pill {
+      color: #fde68a;
+      font-weight: 800;
+      font-size: 17px;
+    }
+
+    .muted { color: var(--muted); }
+
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3,7,18,.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .dialog-backdrop.open { display: flex; }
+
+    .dialog {
+      width: 100%;
+      max-width: 520px;
+      background: #111827;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .dialog-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dialog-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 0 20px 20px;
+      flex-wrap: wrap;
+    }
+
+    .mini-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      margin-top: 6px;
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .toast-wrap {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 80;
+    }
+
+    .toast {
+      background: #111827;
+      border: 1px solid rgba(255,255,255,.12);
+      color: white;
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      min-width: 240px;
+    }
+
+    .toast.success { border-color: rgba(34,197,94,.35); }
+    .toast.error { border-color: rgba(239,68,68,.35); }
+
+    @media (max-width: 1180px) {
+      .app { grid-template-columns: 280px 1fr; }
+      .right-column { grid-column: 1 / -1; }
+      .right-sticky { position: static; }
+    }
+
+    @media (max-width: 860px) {
+      .app { grid-template-columns: 1fr; }
+      .products-grid { max-height: none; }
+      .center-panel-header { flex-direction: column; }
+      .tables-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 12px; }
+      .panel-inner, .menu-toolbar, .center-panel-header, .categories, .products-grid { padding-left: 14px; padding-right: 14px; }
+      .tables-grid { grid-template-columns: repeat(2, 1fr); }
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+      .brand h1 { font-size: 24px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="app">
-        <div class="header">
-            <h1>WAITER PRO</h1>
-            <button class="settings-btn" id="settingsBtn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"/>
-                    <path d="M19.4 15C18.9 16 18.1 16.7 17.3 17.2L19 20.6L16 21L15.2 18.2C14.3 18.5 13.3 18.7 12.3 18.7C11.3 18.7 10.3 18.5 9.4 18.2L8.6 21L5.6 20.6L7.3 17.2C6.5 16.7 5.7 16 5.2 15L2 14.5L3 11.5L2 8.5L5.2 8C5.7 7 6.5 6.3 7.3 5.8L5.6 2.4L8.6 2L9.4 4.8C10.3 4.5 11.3 4.3 12.3 4.3C13.3 4.3 14.3 4.5 15.2 4.8L16 2L19 2.4L17.3 5.8C18.1 6.3 18.9 7 19.4 8L22 8.5L21 11.5L22 14.5L19.4 15Z"/>
-                </svg>
-                Настройки
-            </button>
+  <div class="app">
+    <aside class="panel">
+      <div class="panel-inner">
+        <div class="brand">
+          <div>
+            <h1>Waiter Flow</h1>
+            <small>Столы, заказы, история</small>
+          </div>
+          <div class="chip"><span class="chip-dot"></span>Локально</div>
         </div>
 
-        <div class="tabs">
-            <button class="tab active" id="tabCurrent">📋 Заказ</button>
-            <button class="tab" id="tabHistory">📜 История</button>
+        <div class="sidebar-block">
+          <div class="section-title">Столы</div>
+          <div class="controls-row" style="margin-bottom:12px;">
+            <input id="newTableInput" class="input" placeholder="Новый стол: VIP, 12, Бар" />
+            <button id="addTableBtn" class="btn btn-secondary small">Добавить</button>
+          </div>
+          <div id="tablesGrid" class="tables-grid"></div>
         </div>
 
-        <div class="section active" id="currentSection">
-            <div class="tables-section">
-                <div class="section-label">
-                    <span>СТОЛЫ</span>
-                    <div class="online-indicator">
-                        <span class="online-dot"></span>
-                        <span id="onlineStatus">Онлайн</span>
-                    </div>
-                </div>
-                <div class="tables-grid" id="tablesContainer"></div>
-            </div>
-
-            <div class="menu-section">
-                <div class="menu-header">
-                    <div class="section-label">МЕНЮ</div>
-                    <button class="add-product-btn" id="addProductBtn">
-                        <span>+</span> Добавить
-                    </button>
-                </div>
-                
-                <!-- Поиск по меню -->
-                <div class="search-box">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
-                    </svg>
-                    <input type="text" id="menuSearch" placeholder="Поиск в меню...">
-                </div>
-                
-                <!-- Категории -->
-                <div class="category-tabs" id="categoryTabs">
-                    <button class="category-tab active" data-category="all">Все</button>
-                    <button class="category-tab" data-category="Пиво">🍺 Пиво</button>
-                    <button class="category-tab" data-category="Еда">🍗 Еда</button>
-                    <button class="category-tab" data-category="Напитки">🧃 Напитки</button>
-                </div>
-                
-                <div class="menu-grid" id="productsContainer"></div>
-            </div>
-
-            <div class="order-section">
-                <div class="order-header">
-                    <h3>Текущий заказ</h3>
-                    <span class="table-indicator" id="currentTableLabel">Стол не выбран</span>
-                </div>
-                <div class="order-items" id="orderItemsContainer">
-                    <div class="empty-cart">Выберите товар</div>
-                </div>
-            </div>
-
-            <div class="total-sum" id="totalSum">0 ₽</div>
-
-            <div class="action-buttons">
-                <button class="primary-btn" id="confirmOrderBtn">✅ Подтвердить</button>
-                <button class="clear-btn" id="clearOrderBtn">🗑️ Очистить</button>
-            </div>
+        <div class="sidebar-block history-wrap">
+          <div class="section-title">История</div>
+          <div class="history-toolbar">
+            <input id="historySearch" class="input" placeholder="Поиск по истории" />
+            <button class="btn btn-ghost small" id="clearHistoryBtn">Очистить всё</button>
+          </div>
+          <div id="historyList" class="history-list"></div>
         </div>
+      </div>
+    </aside>
 
-        <div class="section" id="historySection">
-            <div class="section-label">
-                ИСТОРИЯ ЗАКАЗОВ
-                <div class="online-indicator">
-                    <span class="online-dot"></span>
-                    <span id="historyOnlineStatus">Онлайн</span>
-                </div>
-            </div>
-            
-            <!-- Поиск по истории -->
-            <div class="search-box">
-                <svg viewBox="0 0 24 24">
-                    <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
-                </svg>
-                <input type="text" id="historySearch" placeholder="Поиск по заказам...">
-            </div>
-            
-            <div class="filter-tabs">
-                <button class="filter-tab active" data-filter="all">Все</button>
-                <button class="filter-tab" data-filter="pinned">📌 Закрепленные</button>
-                <button class="filter-tab" data-filter="today">📅 Сегодня</button>
-            </div>
-            
-            <div class="history-list" id="historyContainer">
-                <div class="loading">Загрузка...</div>
-            </div>
+    <main class="panel">
+      <div class="center-panel-header">
+        <div>
+          <div class="section-title">Меню</div>
+          <h2 style="font-size:28px; line-height:1.05;">Быстрый выбор товаров</h2>
+          <p class="muted" style="margin-top:8px;">Выбери стол, нажимай на позиции и сразу собирай заказ.</p>
         </div>
+        <div id="activeTableBadge" class="order-badge">Стол не выбран</div>
+      </div>
 
-        <div class="footer-note">Нажмите на товар • +/- в заказе</div>
+      <div class="menu-toolbar">
+        <input id="productSearch" class="input search-grow" placeholder="Поиск товара" />
+        <button id="openProductDialogBtn" class="btn btn-primary">+ Добавить товар</button>
+      </div>
+
+      <div id="categories" class="categories"></div>
+      <div id="productsGrid" class="products-grid"></div>
+    </main>
+
+    <section class="panel right-column">
+      <div class="panel-inner right-sticky">
+        <div class="section-title">Текущий заказ</div>
+        <div id="orderState"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="productDialogBackdrop" class="dialog-backdrop">
+    <div class="dialog">
+      <div class="dialog-header">
+        <strong>Новый товар</strong>
+        <button class="btn btn-ghost small" data-close-dialog="product">✕</button>
+      </div>
+      <div class="dialog-body">
+        <input id="productNameInput" class="input" placeholder="Название товара" />
+        <input id="productPriceInput" class="input" type="number" min="0" step="1" placeholder="Цена" />
+        <input id="productCategoryInput" class="input" placeholder="Категория: Пиво, Еда, Напитки" />
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" data-close-dialog="product">Отмена</button>
+        <button id="saveProductBtn" class="btn btn-primary">Сохранить</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Тосты для уведомлений -->
-    <div id="toastContainer"></div>
-
-    <!-- Модальное окно настроек -->
-    <div class="modal" id="settingsModal">
-        <div class="modal-content">
-            <div class="modal-title">⚙️ Настройки</div>
-            
-            <div id="mainSettingsMenu">
-                <div class="modal-menu">
-                    <div class="modal-menu-item" id="editTablesMenuItem">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7h3v3h-3v-3zm-5 0h3v3H7v-3zm10 0h3v3h-3v-3z"/>
-                        </svg>
-                        Управление столами
-                    </div>
-                    <div class="modal-menu-item" id="setPriceMenuItem">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.5 15h-3v-2h3v2zm0-4h-3V7h3v6z"/>
-                        </svg>
-                        Назначить цену
-                    </div>
-                </div>
-                <button class="close-modal" id="closeSettingsBtn">Закрыть</button>
-            </div>
-
-            <div class="submodal" id="editTablesSubmenu" style="display: none;">
-                <div class="modal-title">🪑 Управление столами</div>
-                <div class="tables-list" id="tablesList"></div>
-                <div class="add-table-form">
-                    <input type="text" id="newTableNameInput" placeholder="Название стола">
-                    <button id="addTableBtn">+</button>
-                </div>
-                <div class="submodal-buttons" style="margin-top: 20px;">
-                    <button class="submodal-cancel" id="cancelEditTablesBtn">Назад</button>
-                </div>
-            </div>
-
-            <div class="submodal" id="setPriceSubmenu" style="display: none;">
-                <div class="modal-title">💰 Назначить цену</div>
-                <select class="submodal-select" id="priceProductSelect"></select>
-                <input type="number" class="submodal-input" id="newPriceInput" placeholder="Новая цена" value="0">
-                <div class="submodal-buttons">
-                    <button class="submodal-save" id="savePriceBtn">Сохранить</button>
-                    <button class="submodal-cancel" id="cancelPriceBtn">Назад</button>
-                </div>
-            </div>
+  <div id="manageTablesBackdrop" class="dialog-backdrop">
+    <div class="dialog">
+      <div class="dialog-header">
+        <strong>Управление столами</strong>
+        <button class="btn btn-ghost small" data-close-dialog="tables">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="controls-row">
+          <input id="dialogTableInput" class="input" placeholder="Название стола" />
+          <button id="dialogAddTableBtn" class="btn btn-secondary">Добавить</button>
         </div>
+        <div id="manageTablesList" class="mini-list"></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" data-close-dialog="tables">Закрыть</button>
+      </div>
     </div>
-
-    <script>
-        (function() {
-            // ============================================
-            // НАСТРОЙКИ SUPABASE
-            // ============================================
-            const SUPABASE_URL = 'https://sbogpobfdlpxjdtbbmln.supabase.co';
-            const SUPABASE_KEY = 'sb_publishable_Jd2iPn2HX3IDw-sqxhXhwA_mc1W2pHY';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                realtime: {
-                    params: {
-                        eventsPerSecond: 10
-                    }
-                }
-            });
-
-            // ============================================
-            // ВСЕ ТОВАРЫ ИЗ ВАШИХ ФОТОГРАФИЙ
-            // ============================================
-            const INITIAL_PRODUCTS = [
-                // Пиво (1-62)
-                { id: 1, name: 'Берлинер Вайссе 2', price: 0, category: 'Пиво' },
-                { id: 2, name: 'Гозе 13', price: 0, category: 'Пиво' },
-                { id: 3, name: 'Зависимость', price: 0, category: 'Пиво' },
-                { id: 4, name: 'AРТ Бланш', price: 0, category: 'Пиво' },
-                { id: 5, name: 'Вторая личность', price: 0, category: 'Пиво' },
-                { id: 6, name: 'Зависимость 1', price: 0, category: 'Пиво' },
-                { id: 7, name: '4B, А.І. Кактус Манго Клубника', price: 0, category: 'Пиво' },
-                { id: 8, name: '4B, Доза Тропик Клубника', price: 0, category: 'Пиво' },
-                { id: 9, name: 'A million little pieces', price: 0, category: 'Пиво' },
-                { id: 10, name: 'Art APA', price: 0, category: 'Пиво' },
-                { id: 11, name: 'Base', price: 0, category: 'Пиво' },
-                { id: 12, name: 'every you every me', price: 0, category: 'Пиво' },
-                { id: 13, name: 'Here to Stay', price: 0, category: 'Пиво' },
-                { id: 14, name: 'Let Love In', price: 0, category: 'Пиво' },
-                { id: 15, name: 'mu - mushroom gose', price: 0, category: 'Пиво' },
-                { id: 16, name: 'Pr - Prince of Darkness', price: 0, category: 'Пиво' },
-                { id: 17, name: 'Re - Rewort, Шоковая Заморозка', price: 0, category: 'Пиво' },
-                { id: 18, name: 'Sh - Shroomdalf', price: 0, category: 'Пиво' },
-                { id: 19, name: 'Sh - Shroomdalf Herbs', price: 0, category: 'Пиво' },
-                { id: 20, name: 'To - Tomato Method', price: 0, category: 'Пиво' },
-                { id: 21, name: 'Jm - Umeboshi', price: 0, category: 'Пиво' },
-                { id: 22, name: 'Vi - Village Kolsh', price: 0, category: 'Пиво' },
-                { id: 23, name: 'B - В собственном соку:Вишня', price: 0, category: 'Пиво' },
-                { id: 24, name: 'Be - Верность клубника', price: 0, category: 'Пиво' },
-                { id: 25, name: 'Be - Верхогляд', price: 0, category: 'Пиво' },
-                { id: 26, name: 'Гл - Гласность', price: 0, category: 'Пиво' },
-                { id: 27, name: 'Го - Гольян', price: 0, category: 'Пиво' },
-                { id: 28, name: 'Ди - Диего М', price: 0, category: 'Пиво' },
-                { id: 29, name: 'жжешь Лесной орех', price: 0, category: 'Пиво' },
-                { id: 30, name: 'жжешь Макарони', price: 0, category: 'Пиво' },
-                { id: 31, name: 'КОВЕН ВЕР ДИД ЗЕ ЭНЖЕЛС ГС', price: 0, category: 'Пиво' },
-                { id: 32, name: 'КОВЕН АНДЕР ЗЕ БРИДЖ', price: 0, category: 'Пиво' },
-                { id: 33, name: 'Лагер 9 (Pils) банка 045 030000', price: 0, category: 'Пиво' },
-                { id: 34, name: 'Мэджик Месс Таг ми', price: 0, category: 'Пиво' },
-                { id: 35, name: 'Саур эль 16', price: 0, category: 'Пиво' },
-                { id: 36, name: 'Сладкий статут 3 (C Is For Cookie)', price: 0, category: 'Пиво' },
-                { id: 37, name: 'Хоп Хэдшот 5', price: 0, category: 'Пиво' },
-                { id: 38, name: 'Хопхэд гозе 14', price: 0, category: 'Пиво' },
-                { id: 39, name: 'ИПАТЕРАПИЯ', price: 0, category: 'Пиво' },
-                { id: 40, name: 'Нью 13', price: 0, category: 'Пиво' },
-                { id: 41, name: 'Русалка', price: 0, category: 'Пиво' },
-                { id: 42, name: 'Зависимость Зеленые оливки', price: 0, category: 'Пиво' },
-                { id: 43, name: 'КУХНИ МИРА: ИТАЛИЯ', price: 0, category: 'Пиво' },
-                { id: 44, name: 'КУХНИ МИРА: РОСТОВСКИЕ РАБОТЫ', price: 0, category: 'Пиво' },
-                { id: 45, name: 'ОГОРОДИШЬ: МАРИНОВАННЫЕ ДЕНЬГИ', price: 0, category: 'Пиво' },
-                { id: 46, name: 'Острая Зависимость', price: 0, category: 'Пиво' },
-                { id: 47, name: 'Салденс Сикс Хопс Американ и Европа', price: 0, category: 'Пиво' },
-                { id: 48, name: 'СБ Шрумдальф 2', price: 0, category: 'Пиво' },
-                { id: 49, name: 'Традиционное легендарное (Третий)', price: 0, category: 'Пиво' },
-                { id: 50, name: 'СБ Летучая Мышь', price: 0, category: 'Пиво' },
-                { id: 51, name: 'Кубанский пирог яблоко корица', price: 0, category: 'Пиво' },
-                { id: 52, name: 'Новогодний Огонек', price: 0, category: 'Пиво' },
-                { id: 53, name: 'Рашн хулиганс', price: 0, category: 'Пиво' },
-                { id: 54, name: 'Синец', price: 0, category: 'Пиво' },
-                { id: 55, name: 'СИНЕЦ', price: 0, category: 'Пиво' },
-                { id: 56, name: 'Салденс Сикс Хопс Американ ИП', price: 0, category: 'Пиво' },
-                { id: 57, name: 'СБ Шрумдальф 2 (дубль)', price: 0, category: 'Пиво' },
-                { id: 58, name: 'Традиционное легендарное (Тр)', price: 0, category: 'Пиво' },
-                { id: 59, name: 'Смелость', price: 0, category: 'Пиво' },
-                { id: 60, name: 'Хеллес 451', price: 0, category: 'Пиво' },
-                { id: 61, name: 'шоковая заморозка', price: 0, category: 'Пиво' },
-                { id: 62, name: 'Юность Ломоносова с ребенком', price: 0, category: 'Пиво' },
-                
-                // Еда (63-74)
-                { id: 63, name: 'Пивчики куриные 100 г', price: 0, category: 'Еда' },
-                { id: 64, name: 'Арахис', price: 0, category: 'Еда' },
-                { id: 65, name: 'Гренки 150г', price: 0, category: 'Еда' },
-                { id: 66, name: 'Карпаччо 100 г', price: 0, category: 'Еда' },
-                { id: 67, name: 'Картофель ФРИ 150 г', price: 0, category: 'Еда' },
-                { id: 68, name: 'Кофе', price: 0, category: 'Напитки' },
-                { id: 69, name: 'Крылышки', price: 0, category: 'Еда' },
-                { id: 70, name: 'Сендвич', price: 0, category: 'Еда' },
-                { id: 71, name: 'Фисташки', price: 0, category: 'Еда' },
-                { id: 72, name: 'Чай', price: 0, category: 'Напитки' },
-                { id: 73, name: 'Чипсы мясные свинина 100 г', price: 0, category: 'Еда' },
-                { id: 74, name: 'Чичаррон 50г', price: 0, category: 'Еда' },
-                
-                // Напитки (75-83)
-                { id: 75, name: 'Bananed', price: 0, category: 'Напитки' },
-                { id: 76, name: 'Blueberry vanilla', price: 0, category: 'Напитки' },
-                { id: 77, name: 'Michael J', price: 0, category: 'Напитки' },
-                { id: 78, name: 'Murquell Pilsner', price: 0, category: 'Пиво' },
-                { id: 79, name: 'Nutty Nut', price: 0, category: 'Напитки' },
-                { id: 80, name: 'Морс', price: 0, category: 'Напитки' },
-                { id: 81, name: 'Морс Л', price: 0, category: 'Напитки' },
-                { id: 82, name: 'Морс Х', price: 0, category: 'Напитки' },
-                { id: 83, name: 'Стаут Холодное Пламя', price: 0, category: 'Пиво' }
-            ];
-
-            // Начальные столы
-            const INITIAL_TABLES = [
-                { id: 1, name: '1' }, { id: 2, name: '2' }, { id: 3, name: '3' }, { id: 4, name: '4' },
-                { id: 5, name: '5' }, { id: 6, name: '6' }, { id: 7, name: '7' }, { id: 8, name: '8' },
-                { id: 9, name: 'VIP' }, { id: 10, name: 'Терраса' }, { id: 11, name: 'Бар' }, { id: 12, name: 'ДР' }
-            ];
-
-            // Данные
-            let tables = [];
-            let products = [];
-            let orders = {};
-            let orderHistory = [];
-            let currentTableId = null;
-            let pinnedOrders = JSON.parse(localStorage.getItem('pinned_orders') || '[]');
-            let currentFilter = 'all';
-            let searchQuery = '';
-            let menuSearchQuery = '';
-            let selectedCategory = 'all';
-
-            // DOM элементы
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsModal = document.getElementById('settingsModal');
-            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-            const mainSettingsMenu = document.getElementById('mainSettingsMenu');
-            const editTablesSubmenu = document.getElementById('editTablesSubmenu');
-            const setPriceSubmenu = document.getElementById('setPriceSubmenu');
-            const tablesContainer = document.getElementById('tablesContainer');
-            const productsContainer = document.getElementById('productsContainer');
-            const orderItemsContainer = document.getElementById('orderItemsContainer');
-            const currentTableLabel = document.getElementById('currentTableLabel');
-            const clearBtn = document.getElementById('clearOrderBtn');
-            const confirmBtn = document.getElementById('confirmOrderBtn');
-            const totalSumElement = document.getElementById('totalSum');
-            const historyContainer = document.getElementById('historyContainer');
-            const tabCurrent = document.getElementById('tabCurrent');
-            const tabHistory = document.getElementById('tabHistory');
-            const currentSection = document.getElementById('currentSection');
-            const historySection = document.getElementById('historySection');
-            const historySearch = document.getElementById('historySearch');
-            const menuSearch = document.getElementById('menuSearch');
-            const categoryTabs = document.querySelectorAll('.category-tab');
-            const filterTabs = document.querySelectorAll('.filter-tab');
-            const toastContainer = document.getElementById('toastContainer');
-            const onlineStatus = document.getElementById('onlineStatus');
-            const historyOnlineStatus = document.getElementById('historyOnlineStatus');
-
-            // ============================================
-            // УВЕДОМЛЕНИЯ
-            // ============================================
-            function showToast(message, type = 'info') {
-                const toast = document.createElement('div');
-                toast.className = 'toast';
-                toast.style.background = type === 'success' ? '#10b981' : '#3b82f6';
-                toast.textContent = message;
-                toastContainer.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.remove();
-                }, 3000);
-            }
-
-            // ============================================
-            // REALTIME ПОДПИСКИ
-            // ============================================
-            function setupRealtimeSubscriptions() {
-                // Подписка на новые заказы
-                supabase
-                    .channel('orders-channel')
-                    .on('postgres_changes', 
-                        { event: 'INSERT', schema: 'public', table: 'orders' },
-                        async (payload) => {
-                            console.log('Новый заказ:', payload);
-                            const newOrder = {
-                                id: payload.new.id,
-                                tableId: payload.new.table_id,
-                                tableName: tables.find(t => t.id === payload.new.table_id)?.name || `Стол ${payload.new.table_id}`,
-                                time: new Date(payload.new.created_at).toLocaleString('ru-RU', {
-                                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
-                                }),
-                                rawDate: new Date(payload.new.created_at),
-                                items: payload.new.items,
-                                total: payload.new.total
-                            };
-                            
-                            orderHistory = [newOrder, ...orderHistory];
-                            
-                            if (historySection.classList.contains('active')) {
-                                renderHistory();
-                            }
-                            
-                            showToast('🔔 Новый заказ!', 'success');
-                        }
-                    )
-                    .subscribe();
-
-                // Подписка на удаление заказов
-                supabase
-                    .channel('orders-delete-channel')
-                    .on('postgres_changes', 
-                        { event: 'DELETE', schema: 'public', table: 'orders' },
-                        (payload) => {
-                            console.log('Заказ удален:', payload);
-                            orderHistory = orderHistory.filter(o => o.id !== payload.old.id);
-                            
-                            if (historySection.classList.contains('active')) {
-                                renderHistory();
-                            }
-                        }
-                    )
-                    .subscribe();
-
-                // Подписка на обновление столов
-                supabase
-                    .channel('tables-channel')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'tables' },
-                        async () => {
-                            await loadTablesFromDB();
-                            renderTables();
-                        }
-                    )
-                    .subscribe();
-
-                // Подписка на обновление товаров
-                supabase
-                    .channel('products-channel')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'products' },
-                        async () => {
-                            await loadProductsFromDB();
-                            renderProducts();
-                        }
-                    )
-                    .subscribe();
-
-                // Проверка соединения
-                let online = true;
-                window.addEventListener('online', () => {
-                    online = true;
-                    onlineStatus.textContent = 'Онлайн';
-                    historyOnlineStatus.textContent = 'Онлайн';
-                });
-                
-                window.addEventListener('offline', () => {
-                    online = false;
-                    onlineStatus.textContent = 'Офлайн';
-                    historyOnlineStatus.textContent = 'Офлайн';
-                    showToast('📡 Нет подключения к интернету', 'error');
-                });
-            }
-
-            // ============================================
-            // ЗАГРУЗКА ИЗ БАЗЫ ДАННЫХ
-            // ============================================
-            async function loadTablesFromDB() {
-                try {
-                    const { data, error } = await supabase
-                        .from('tables')
-                        .select('*')
-                        .order('id');
-
-                    if (error || !data || data.length === 0) {
-                        tables = [...INITIAL_TABLES];
-                        for (let table of tables) {
-                            await supabase.from('tables').insert([{ id: table.id, name: table.name }]);
-                        }
-                    } else {
-                        tables = data;
-                    }
-                } catch (e) {
-                    console.error('Ошибка загрузки столов:', e);
-                    tables = [...INITIAL_TABLES];
-                }
-            }
-
-            async function loadProductsFromDB() {
-                try {
-                    const { data, error } = await supabase
-                        .from('products')
-                        .select('*')
-                        .order('id');
-
-                    if (error || !data || data.length === 0) {
-                        products = [...INITIAL_PRODUCTS];
-                        for (let product of products) {
-                            await supabase.from('products').insert([{ 
-                                id: product.id, 
-                                name: product.name, 
-                                price: product.price,
-                                category: product.category 
-                            }]);
-                        }
-                    } else {
-                        products = data;
-                    }
-                } catch (e) {
-                    console.error('Ошибка загрузки товаров:', e);
-                    products = [...INITIAL_PRODUCTS];
-                }
-            }
-
-            async function loadHistoryFromDB() {
-                try {
-                    const { data, error } = await supabase
-                        .from('orders')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-
-                    if (error) {
-                        console.error('Ошибка загрузки истории:', error);
-                        return [];
-                    }
-
-                    return data.map(item => ({
-                        id: item.id,
-                        tableId: item.table_id,
-                        tableName: tables.find(t => t.id === item.table_id)?.name || `Стол ${item.table_id}`,
-                        time: new Date(item.created_at).toLocaleString('ru-RU', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            day: '2-digit',
-                            month: '2-digit'
-                        }),
-                        rawDate: new Date(item.created_at),
-                        items: item.items,
-                        total: item.total
-                    }));
-                } catch (e) {
-                    console.error('Ошибка:', e);
-                    return [];
-                }
-            }
-
-            async function saveOrderToDB(tableId, items, total) {
-                try {
-                    const { error } = await supabase
-                        .from('orders')
-                        .insert([{ 
-                            table_id: tableId, 
-                            items: items, 
-                            total: total 
-                        }]);
-
-                    if (error) {
-                        console.error('Ошибка сохранения:', error);
-                        showToast('❌ Ошибка сохранения заказа', 'error');
-                        return false;
-                    }
-                    
-                    showToast('✅ Заказ сохранён', 'success');
-                    return true;
-                } catch (e) {
-                    console.error('Ошибка:', e);
-                    showToast('❌ Ошибка соединения', 'error');
-                    return false;
-                }
-            }
-
-            async function updateProductInDB(id, updates) {
-                try {
-                    const { error } = await supabase
-                        .from('products')
-                        .update(updates)
-                        .eq('id', id);
-                    if (error) throw error;
-                    showToast('💰 Цена обновлена', 'success');
-                } catch (e) {
-                    console.error('Ошибка обновления товара:', e);
-                    showToast('❌ Ошибка обновления', 'error');
-                }
-            }
-
-            async function updateTableInDB(id, name) {
-                try {
-                    const { error } = await supabase
-                        .from('tables')
-                        .update({ name })
-                        .eq('id', id);
-                    if (error) throw error;
-                } catch (e) {
-                    console.error('Ошибка обновления стола:', e);
-                }
-            }
-
-            async function addTableToDB(name) {
-                try {
-                    const newId = tables.length > 0 ? Math.max(...tables.map(t => t.id)) + 1 : 1;
-                    const { error } = await supabase
-                        .from('tables')
-                        .insert([{ id: newId, name }]);
-                    if (error) throw error;
-                    tables.push({ id: newId, name });
-                } catch (e) {
-                    console.error('Ошибка добавления стола:', e);
-                }
-            }
-
-            async function deleteTableFromDB(id) {
-                try {
-                    const { error } = await supabase
-                        .from('tables')
-                        .delete()
-                        .eq('id', id);
-                    if (error) throw error;
-                } catch (e) {
-                    console.error('Ошибка удаления стола:', e);
-                }
-            }
-
-            async function deleteOrderFromDB(id) {
-                try {
-                    const { error } = await supabase
-                        .from('orders')
-                        .delete()
-                        .eq('id', id);
-                    if (error) throw error;
-                    showToast('🗑️ Заказ удалён', 'success');
-                    return true;
-                } catch (e) {
-                    console.error('Ошибка удаления заказа:', e);
-                    showToast('❌ Ошибка удаления', 'error');
-                    return false;
-                }
-            }
-
-            // ============================================
-            // UI ФУНКЦИИ
-            // ============================================
-            function renderTables() {
-                let html = '';
-                tables.forEach(table => {
-                    const activeClass = (currentTableId === table.id) ? 'active' : '';
-                    html += `<button class="table-btn ${activeClass}" data-table-id="${table.id}">${table.name}</button>`;
-                });
-                tablesContainer.innerHTML = html;
-
-                document.querySelectorAll('.table-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const tableId = parseInt(e.currentTarget.dataset.tableId);
-                        currentTableId = tableId;
-                        renderTables();
-                        renderOrder();
-                    });
-                });
-            }
-
-            function renderProducts() {
-                let filtered = [...products];
-                
-                // Фильтр по категории
-                if (selectedCategory !== 'all') {
-                    filtered = filtered.filter(p => p.category === selectedCategory);
-                }
-                
-                // Фильтр по поиску
-                if (menuSearchQuery) {
-                    const query = menuSearchQuery.toLowerCase();
-                    filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
-                }
-                
-                let html = '';
-                filtered.forEach(p => {
-                    html += `
-                        <button class="product-btn" data-product-id="${p.id}">
-                            ${p.category ? `<span class="product-category">${p.category === 'Пиво' ? '🍺' : p.category === 'Еда' ? '🍗' : '🧃'}</span>` : ''}
-                            <span class="product-name">${p.name}</span>
-                            <span class="product-price">${p.price}₽</span>
-                        </button>
-                    `;
-                });
-                
-                if (filtered.length === 0) {
-                    productsContainer.innerHTML = '<div class="empty-cart">Товары не найдены</div>';
-                } else {
-                    productsContainer.innerHTML = html;
-                }
-
-                document.querySelectorAll('.product-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const productId = parseInt(e.currentTarget.dataset.productId);
-                        handleAddProduct(productId);
-                    });
-                });
-            }
-
-            function handleAddProduct(productId) {
-                if (!currentTableId) {
-                    showToast('❌ Выберите стол', 'error');
-                    return;
-                }
-
-                if (!orders[currentTableId]) {
-                    orders[currentTableId] = {};
-                }
-
-                orders[currentTableId][productId] = (orders[currentTableId][productId] || 0) + 1;
-                renderOrder();
-            }
-
-            function handleIncrease(productId) {
-                if (!currentTableId) return;
-                orders[currentTableId][productId] = (orders[currentTableId][productId] || 0) + 1;
-                renderOrder();
-            }
-
-            function handleDecrease(productId) {
-                if (!currentTableId) return;
-                
-                if (orders[currentTableId][productId] > 1) {
-                    orders[currentTableId][productId] -= 1;
-                } else {
-                    delete orders[currentTableId][productId];
-                }
-                
-                renderOrder();
-            }
-
-            function renderOrder() {
-                const currentTable = tables.find(t => t.id === currentTableId);
-                currentTableLabel.textContent = currentTable ? currentTable.name : 'Стол не выбран';
-
-                const order = (currentTableId && orders[currentTableId]) ? orders[currentTableId] : {};
-                
-                if (!currentTableId || Object.keys(order).length === 0) {
-                    orderItemsContainer.innerHTML = '<div class="empty-cart">Выберите товар</div>';
-                    totalSumElement.textContent = '0 ₽';
-                    return;
-                }
-
-                let html = '';
-                let total = 0;
-                
-                for (let productId in order) {
-                    const count = order[productId];
-                    const product = products.find(p => p.id === parseInt(productId));
-                    if (!product) continue;
-                    
-                    total += product.price * count;
-                    
-                    html += `
-                        <div class="order-row">
-                            <span class="item-name">${product.name}</span>
-                            <div class="item-controls">
-                                <button class="qty-btn minus" data-product-id="${product.id}">−</button>
-                                <span class="item-qty">${count}</span>
-                                <button class="qty-btn plus" data-product-id="${product.id}">+</button>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                orderItemsContainer.innerHTML = html;
-                totalSumElement.textContent = `${total} ₽`;
-
-                document.querySelectorAll('.qty-btn.plus').forEach(btn => {
-                    btn.addEventListener('click', () => handleIncrease(parseInt(btn.dataset.productId)));
-                });
-
-                document.querySelectorAll('.qty-btn.minus').forEach(btn => {
-                    btn.addEventListener('click', () => handleDecrease(parseInt(btn.dataset.productId)));
-                });
-            }
-
-            function filterHistory() {
-                let filtered = [...orderHistory];
-                
-                // Фильтр по поиску
-                if (searchQuery) {
-                    const query = searchQuery.toLowerCase();
-                    filtered = filtered.filter(order => {
-                        const items = Object.entries(order.items)
-                            .map(([id, qty]) => {
-                                const product = products.find(p => p.id === parseInt(id));
-                                return product ? product.name : '';
-                            })
-                            .join(' ')
-                            .toLowerCase();
-                        return order.tableName.toLowerCase().includes(query) || items.includes(query);
-                    });
-                }
-                
-                // Фильтр по категориям
-                if (currentFilter === 'pinned') {
-                    filtered = filtered.filter(order => pinnedOrders.includes(order.id));
-                } else if (currentFilter === 'today') {
-                    const today = new Date().toDateString();
-                    filtered = filtered.filter(order => order.rawDate?.toDateString() === today);
-                }
-                
-                // Закрепленные всегда сверху
-                filtered.sort((a, b) => {
-                    const aPinned = pinnedOrders.includes(a.id);
-                    const bPinned = pinnedOrders.includes(b.id);
-                    if (aPinned && !bPinned) return -1;
-                    if (!aPinned && bPinned) return 1;
-                    return b.rawDate - a.rawDate;
-                });
-                
-                return filtered;
-            }
-
-            function togglePin(orderId) {
-                const index = pinnedOrders.indexOf(orderId);
-                if (index === -1) {
-                    pinnedOrders.push(orderId);
-                    showToast('📌 Заказ закреплён', 'success');
-                } else {
-                    pinnedOrders.splice(index, 1);
-                    showToast('📌 Закрепление снято', 'info');
-                }
-                localStorage.setItem('pinned_orders', JSON.stringify(pinnedOrders));
-                renderHistory();
-            }
-
-            function renderHistory() {
-                const filtered = filterHistory();
-                
-                if (filtered.length === 0) {
-                    historyContainer.innerHTML = '<div class="history-empty">Заказы не найдены</div>';
-                    return;
-                }
-
-                let html = '';
-                
-                filtered.forEach(order => {
-                    let itemsList = [];
-                    let orderTotal = 0;
-                    
-                    for (let productId in order.items) {
-                        const count = order.items[productId];
-                        const product = products.find(p => p.id === parseInt(productId));
-                        if (product) {
-                            itemsList.push(`${product.name} x${count}`);
-                            orderTotal += product.price * count;
-                        }
-                    }
-                    
-                    const isPinned = pinnedOrders.includes(order.id);
-                    
-                    html += `
-                        <div class="history-item ${isPinned ? 'pinned' : ''}">
-                            <div class="history-header">
-                                <span class="history-table">${order.tableName}</span>
-                                <span class="history-time">${order.time}</span>
-                            </div>
-                            <div class="history-items">
-                                ${itemsList.map(text => {
-                                    const [name, qty] = text.split(' x');
-                                    return `<div class="history-item-row">
-                                        <span class="history-item-name">${name}</span>
-                                        <span class="history-item-qty">×${qty}</span>
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                            <div class="history-total">
-                                <span>Итого: ${order.total || orderTotal} ₽</span>
-                                <div class="history-actions">
-                                    <button class="history-action-btn ${isPinned ? 'pin' : ''}" onclick="togglePin(${order.id})">
-                                        📌
-                                    </button>
-                                    <button class="history-action-btn delete" onclick="deleteOrder(${order.id})">
-                                        ×
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                historyContainer.innerHTML = html;
-            }
-
-            // Глобальные функции
-            window.togglePin = togglePin;
-            
-            window.deleteOrder = async function(orderId) {
-                if (confirm('Удалить заказ из истории?')) {
-                    const deleted = await deleteOrderFromDB(orderId);
-                    if (deleted) {
-                        const index = pinnedOrders.indexOf(orderId);
-                        if (index !== -1) {
-                            pinnedOrders.splice(index, 1);
-                            localStorage.setItem('pinned_orders', JSON.stringify(pinnedOrders));
-                        }
-                        orderHistory = orderHistory.filter(o => o.id !== orderId);
-                        renderHistory();
-                    }
-                }
-            };
-
-            // ============================================
-            // ОБРАБОТЧИКИ
-            // ============================================
-            confirmBtn.addEventListener('click', async () => {
-                if (!currentTableId) {
-                    showToast('❌ Выберите стол', 'error');
-                    return;
-                }
-
-                const order = orders[currentTableId];
-                if (!order || Object.keys(order).length === 0) {
-                    showToast('❌ Заказ пуст', 'error');
-                    return;
-                }
-
-                const total = parseInt(totalSumElement.textContent.replace('₽', '').trim()) || 0;
-
-                const saved = await saveOrderToDB(currentTableId, order, total);
-                
-                if (saved) {
-                    delete orders[currentTableId];
-                    renderOrder();
-                    orderHistory = await loadHistoryFromDB();
-                }
-            });
-
-            clearBtn.addEventListener('click', () => {
-                if (!currentTableId) return;
-                
-                if (confirm('Очистить заказ?')) {
-                    delete orders[currentTableId];
-                    renderOrder();
-                    showToast('🗑️ Заказ очищен', 'info');
-                }
-            });
-
-            // Переключение табов
-            tabCurrent.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                tabCurrent.classList.add('active');
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                currentSection.classList.add('active');
-            });
-
-            tabHistory.addEventListener('click', async () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                tabHistory.classList.add('active');
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                historySection.classList.add('active');
-                
-                historyContainer.innerHTML = '<div class="loading">Загрузка...</div>';
-                orderHistory = await loadHistoryFromDB();
-                renderHistory();
-            });
-
-            // Поиск по истории
-            historySearch.addEventListener('input', (e) => {
-                searchQuery = e.target.value;
-                renderHistory();
-            });
-
-            // Поиск по меню
-            menuSearch.addEventListener('input', (e) => {
-                menuSearchQuery = e.target.value;
-                renderProducts();
-            });
-
-            // Категории меню
-            categoryTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    categoryTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    selectedCategory = tab.dataset.category;
-                    renderProducts();
-                });
-            });
-
-            // Фильтры истории
-            filterTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    filterTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    currentFilter = tab.dataset.filter;
-                    renderHistory();
-                });
-            });
-
-            // ============================================
-            // НАСТРОЙКИ
-            // ============================================
-            settingsBtn.addEventListener('click', () => {
-                settingsModal.classList.add('active');
-            });
-
-            closeSettingsBtn.addEventListener('click', () => {
-                settingsModal.classList.remove('active');
-                mainSettingsMenu.style.display = 'block';
-                editTablesSubmenu.style.display = 'none';
-                setPriceSubmenu.style.display = 'none';
-            });
-
-            document.getElementById('editTablesMenuItem').addEventListener('click', () => {
-                mainSettingsMenu.style.display = 'none';
-                editTablesSubmenu.style.display = 'block';
-                renderTablesList();
-            });
-
-            document.getElementById('setPriceMenuItem').addEventListener('click', () => {
-                mainSettingsMenu.style.display = 'none';
-                setPriceSubmenu.style.display = 'block';
-                updatePriceProductSelect();
-            });
-
-            document.getElementById('cancelEditTablesBtn').addEventListener('click', () => {
-                editTablesSubmenu.style.display = 'none';
-                mainSettingsMenu.style.display = 'block';
-            });
-
-            document.getElementById('cancelPriceBtn').addEventListener('click', () => {
-                setPriceSubmenu.style.display = 'none';
-                mainSettingsMenu.style.display = 'block';
-            });
-
-            document.getElementById('editTablesBtn').addEventListener('click', () => {
-                settingsBtn.click();
-                setTimeout(() => {
-                    mainSettingsMenu.style.display = 'none';
-                    editTablesSubmenu.style.display = 'block';
-                    renderTablesList();
-                }, 300);
-            });
-
-            function renderTablesList() {
-                const container = document.getElementById('tablesList');
-                let html = '';
-                
-                tables.forEach(table => {
-                    html += `
-                        <div class="table-edit-item" data-table-id="${table.id}">
-                            <input type="text" class="table-name-input" value="${table.name}" placeholder="Название стола">
-                            <button class="delete-table-btn" onclick="window.deleteTable('${table.id}')">×</button>
-                        </div>
-                    `;
-                });
-                
-                container.innerHTML = html;
-
-                document.querySelectorAll('.table-name-input').forEach(input => {
-                    input.addEventListener('change', async (e) => {
-                        const tableItem = e.target.closest('.table-edit-item');
-                        const tableId = parseInt(tableItem.dataset.tableId);
-                        const newName = e.target.value.trim();
-                        
-                        if (newName) {
-                            await updateTableInDB(tableId, newName);
-                            const table = tables.find(t => t.id === tableId);
-                            if (table) {
-                                table.name = newName;
-                                renderTables();
-                            }
-                        }
-                    });
-                });
-            }
-
-            window.deleteTable = async function(tableId) {
-                if (confirm('Удалить стол?')) {
-                    await deleteTableFromDB(tableId);
-                    tables = tables.filter(t => t.id !== tableId);
-                    if (currentTableId === tableId) {
-                        currentTableId = tables.length > 0 ? tables[0].id : null;
-                    }
-                    renderTables();
-                    renderTablesList();
-                }
-            };
-
-            document.getElementById('addTableBtn').addEventListener('click', async () => {
-                const input = document.getElementById('newTableNameInput');
-                const name = input.value.trim();
-                
-                if (name) {
-                    await addTableToDB(name);
-                    renderTables();
-                    renderTablesList();
-                    input.value = '';
-                }
-            });
-
-            function updatePriceProductSelect() {
-                const select = document.getElementById('priceProductSelect');
-                select.innerHTML = '';
-                products.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = `${p.name} (${p.price}₽)`;
-                    select.appendChild(option);
-                });
-            }
-
-            document.getElementById('savePriceBtn').addEventListener('click', async () => {
-                const productId = parseInt(document.getElementById('priceProductSelect').value);
-                const newPrice = parseInt(document.getElementById('newPriceInput').value) || 0;
-                
-                await updateProductInDB(productId, { price: newPrice });
-                
-                const product = products.find(p => p.id === productId);
-                if (product) {
-                    product.price = newPrice;
-                    renderProducts();
-                    renderOrder();
-                    
-                    document.getElementById('newPriceInput').value = '0';
-                    setPriceSubmenu.style.display = 'none';
-                    mainSettingsMenu.style.display = 'block';
-                }
-            });
-
-            document.getElementById('addProductBtn').addEventListener('click', () => {
-                const name = prompt('Введите название товара:');
-                if (name) {
-                    const category = prompt('Введите категорию (Пиво/Еда/Напитки):', 'Пиво');
-                    const price = parseInt(prompt('Введите цену:', '0')) || 0;
-                    const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 84;
-                    products.push({ id: newId, name, price, category });
-                    renderProducts();
-                }
-            });
-
-            // ============================================
-            // ИНИЦИАЛИЗАЦИЯ
-            // ============================================
-            async function init() {
-                await loadTablesFromDB();
-                await loadProductsFromDB();
-                orderHistory = await loadHistoryFromDB();
-                
-                if (tables.length > 0 && !currentTableId) {
-                    currentTableId = tables[0].id;
-                }
-                
-                renderAll();
-                setupRealtimeSubscriptions();
-            }
-
-            function renderAll() {
-                renderTables();
-                renderProducts();
-                renderOrder();
-            }
-
-            init();
-
-            settingsModal.addEventListener('click', (e) => {
-                if (e.target === settingsModal) {
-                    settingsModal.classList.remove('active');
-                    mainSettingsMenu.style.display = 'block';
-                    editTablesSubmenu.style.display = 'none';
-                    setPriceSubmenu.style.display = 'none';
-                }
-            });
-        })();
-    </script>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+    const STORAGE_KEYS = {
+      tables: 'waiter_flow_tables_v1',
+      products: 'waiter_flow_products_v1',
+      orders: 'waiter_flow_orders_v1',
+      history: 'waiter_flow_history_v1',
+      selectedTableId: 'waiter_flow_selected_table_v1'
+    };
+
+    const defaultTables = [
+      { id: uid(), name: '1' },
+      { id: uid(), name: '2' },
+      { id: uid(), name: '3' },
+      { id: uid(), name: '4' },
+      { id: uid(), name: 'VIP' },
+      { id: uid(), name: 'Бар' }
+    ];
+
+    const defaultProducts = [
+      { id: uid(), name: 'Лагер', price: 250, category: 'Пиво' },
+      { id: uid(), name: 'IPA', price: 320, category: 'Пиво' },
+      { id: uid(), name: 'Стаут', price: 340, category: 'Пиво' },
+      { id: uid(), name: 'Картофель фри', price: 220, category: 'Еда' },
+      { id: uid(), name: 'Крылышки', price: 390, category: 'Еда' },
+      { id: uid(), name: 'Гренки', price: 180, category: 'Еда' },
+      { id: uid(), name: 'Кола', price: 140, category: 'Напитки' },
+      { id: uid(), name: 'Морс', price: 160, category: 'Напитки' },
+      { id: uid(), name: 'Кофе', price: 170, category: 'Напитки' }
+    ];
+
+    let state = {
+      tables: load(STORAGE_KEYS.tables, defaultTables),
+      products: load(STORAGE_KEYS.products, defaultProducts),
+      orders: load(STORAGE_KEYS.orders, {}),
+      history: load(STORAGE_KEYS.history, []),
+      selectedTableId: load(STORAGE_KEYS.selectedTableId, null),
+      productSearch: '',
+      historySearch: '',
+      selectedCategory: 'Все'
+    };
+
+    const els = {
+      tablesGrid: document.getElementById('tablesGrid'),
+      productsGrid: document.getElementById('productsGrid'),
+      categories: document.getElementById('categories'),
+      orderState: document.getElementById('orderState'),
+      activeTableBadge: document.getElementById('activeTableBadge'),
+      newTableInput: document.getElementById('newTableInput'),
+      addTableBtn: document.getElementById('addTableBtn'),
+      productSearch: document.getElementById('productSearch'),
+      historySearch: document.getElementById('historySearch'),
+      historyList: document.getElementById('historyList'),
+      clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+      productDialogBackdrop: document.getElementById('productDialogBackdrop'),
+      openProductDialogBtn: document.getElementById('openProductDialogBtn'),
+      productNameInput: document.getElementById('productNameInput'),
+      productPriceInput: document.getElementById('productPriceInput'),
+      productCategoryInput: document.getElementById('productCategoryInput'),
+      saveProductBtn: document.getElementById('saveProductBtn'),
+      manageTablesBackdrop: document.getElementById('manageTablesBackdrop'),
+      manageTablesList: document.getElementById('manageTablesList'),
+      dialogTableInput: document.getElementById('dialogTableInput'),
+      dialogAddTableBtn: document.getElementById('dialogAddTableBtn'),
+      toastWrap: document.getElementById('toastWrap')
+    };
+
+    ensureSelectedTable();
+    renderAll();
+    bindEvents();
+
+    function uid() {
+      return Math.random().toString(36).slice(2, 10);
+    }
+
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEYS.tables, JSON.stringify(state.tables));
+      localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(state.products));
+      localStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(state.orders));
+      localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(state.history));
+      localStorage.setItem(STORAGE_KEYS.selectedTableId, JSON.stringify(state.selectedTableId));
+    }
+
+    function ensureSelectedTable() {
+      const exists = state.tables.some(t => t.id === state.selectedTableId);
+      if (!exists) {
+        state.selectedTableId = state.tables[0]?.id || null;
+      }
+    }
+
+    function bindEvents() {
+      els.addTableBtn.addEventListener('click', () => addTable(els.newTableInput.value));
+      els.newTableInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') addTable(els.newTableInput.value);
+      });
+
+      els.dialogAddTableBtn.addEventListener('click', () => addTable(els.dialogTableInput.value, true));
+      els.dialogTableInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') addTable(els.dialogTableInput.value, true);
+      });
+
+      els.productSearch.addEventListener('input', e => {
+        state.productSearch = e.target.value.trim().toLowerCase();
+        renderProducts();
+      });
+
+      els.historySearch.addEventListener('input', e => {
+        state.historySearch = e.target.value.trim().toLowerCase();
+        renderHistory();
+      });
+
+      els.clearHistoryBtn.addEventListener('click', () => {
+        if (!state.history.length) return toast('История уже пустая');
+        if (!confirm('Удалить всю историю заказов?')) return;
+        state.history = [];
+        save();
+        renderHistory();
+        toast('История очищена', 'success');
+      });
+
+      els.openProductDialogBtn.addEventListener('click', () => openDialog('product'));
+      els.saveProductBtn.addEventListener('click', saveProduct);
+
+      document.querySelectorAll('[data-close-dialog]').forEach(btn => {
+        btn.addEventListener('click', () => closeDialog(btn.dataset.closeDialog));
+      });
+
+      els.productDialogBackdrop.addEventListener('click', e => {
+        if (e.target === els.productDialogBackdrop) closeDialog('product');
+      });
+
+      els.manageTablesBackdrop.addEventListener('click', e => {
+        if (e.target === els.manageTablesBackdrop) closeDialog('tables');
+      });
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          closeDialog('product');
+          closeDialog('tables');
+        }
+      });
+    }
+
+    function renderAll() {
+      renderTables();
+      renderCategories();
+      renderProducts();
+      renderOrder();
+      renderHistory();
+      renderManageTables();
+    }
+
+    function renderTables() {
+      ensureSelectedTable();
+      els.tablesGrid.innerHTML = '';
+
+      state.tables.forEach(table => {
+        const order = state.orders[table.id] || [];
+        const total = getOrderTotal(order);
+        const itemCount = order.reduce((sum, item) => sum + item.qty, 0);
+
+        const card = document.createElement('button');
+        card.className = 'table-card' + (state.selectedTableId === table.id ? ' active' : '');
+        card.innerHTML = `
+          <div class="table-top">
+            <div>
+              <div class="table-name">${escapeHtml(table.name)}</div>
+              <div class="table-meta">${itemCount ? `${itemCount} поз.` : 'Нет заказа'}</div>
+            </div>
+            <div class="chip" style="padding:6px 10px; font-size:12px;">${itemCount ? 'Активен' : 'Свободен'}</div>
+          </div>
+          <div class="table-sum">${money(total)}</div>
+        `;
+        card.addEventListener('click', () => {
+          state.selectedTableId = table.id;
+          save();
+          renderTables();
+          renderOrder();
+        });
+        els.tablesGrid.appendChild(card);
+      });
+    }
+
+    function renderCategories() {
+      const categories = ['Все', ...new Set(state.products.map(p => (p.category || 'Без категории').trim()))];
+      els.categories.innerHTML = '';
+
+      categories.forEach(category => {
+        const btn = document.createElement('button');
+        btn.className = 'category-pill' + (state.selectedCategory === category ? ' active' : '');
+        btn.textContent = category;
+        btn.addEventListener('click', () => {
+          state.selectedCategory = category;
+          renderCategories();
+          renderProducts();
+        });
+        els.categories.appendChild(btn);
+      });
+    }
+
+    function renderProducts() {
+      const filtered = state.products.filter(product => {
+        const matchesSearch = !state.productSearch || product.name.toLowerCase().includes(state.productSearch);
+        const matchesCategory = state.selectedCategory === 'Все' || (product.category || 'Без категории') === state.selectedCategory;
+        return matchesSearch && matchesCategory;
+      });
+
+      els.productsGrid.innerHTML = '';
+
+      if (!filtered.length) {
+        els.productsGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Ничего не найдено</div>';
+        return;
+      }
+
+      filtered.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <div class="product-category">${escapeHtml(product.category || 'Без категории')}</div>
+          <div class="product-name">${escapeHtml(product.name)}</div>
+          <div class="product-price">${money(product.price)}</div>
+          <div class="controls-row">
+            <button class="btn btn-primary small" style="width:100%;">Добавить в заказ</button>
+          </div>
+        `;
+        card.querySelector('button').addEventListener('click', () => addProductToOrder(product.id));
+        els.productsGrid.appendChild(card);
+      });
+    }
+
+    function renderOrder() {
+      const selectedTable = state.tables.find(t => t.id === state.selectedTableId);
+      els.activeTableBadge.textContent = selectedTable ? `Стол ${selectedTable.name}` : 'Стол не выбран';
+
+      if (!selectedTable) {
+        els.orderState.innerHTML = '<div class="empty-state">Добавь хотя бы один стол</div>';
+        return;
+      }
+
+      const order = state.orders[selectedTable.id] || [];
+
+      if (!order.length) {
+        els.orderState.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:18px; font-weight:800; color:white; margin-bottom:8px;">У стола ${escapeHtml(selectedTable.name)} пока пусто</div>
+            <div>Выбери товары в центре экрана, чтобы собрать заказ.</div>
+            <div class="controls-row" style="margin-top:14px; justify-content:center;">
+              <button class="btn btn-ghost" id="manageTablesOpenBtn">Управление столами</button>
+            </div>
+          </div>
+        `;
+        document.getElementById('manageTablesOpenBtn')?.addEventListener('click', () => openDialog('tables'));
+        return;
+      }
+
+      const totalQty = order.reduce((sum, item) => sum + item.qty, 0);
+      const total = getOrderTotal(order);
+
+      const orderHtml = order.map(item => {
+        const product = state.products.find(p => p.id === item.productId);
+        if (!product) return '';
+        return `
+          <div class="order-item">
+            <div>
+              <div class="order-item-name">${escapeHtml(product.name)}</div>
+              <div class="order-item-sub">${money(product.price)} × ${item.qty} = ${money(product.price * item.qty)}</div>
+            </div>
+            <div class="qty-controls">
+              <button class="qty-btn" data-dec="${item.productId}">−</button>
+              <div class="qty-value">${item.qty}</div>
+              <button class="qty-btn" data-inc="${item.productId}">+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      els.orderState.innerHTML = `
+        <div class="controls-row" style="margin-bottom:12px;">
+          <button class="btn btn-ghost small" id="manageTablesOpenBtn">Столы</button>
+          <button class="btn btn-danger small" id="clearOrderBtn">Очистить</button>
+        </div>
+        <div class="order-list">${orderHtml}</div>
+        <div class="summary-box">
+          <div class="summary-row"><span>Позиций</span><strong>${totalQty}</strong></div>
+          <div class="summary-row"><span>Уникальных товаров</span><strong>${order.length}</strong></div>
+          <div class="summary-row total"><span>Итого</span><span>${money(total)}</span></div>
+        </div>
+        <div class="controls-row" style="margin-top:14px;">
+          <button class="btn btn-primary" id="completeOrderBtn" style="flex:1;">Закрыть заказ</button>
+        </div>
+      `;
+
+      els.orderState.querySelectorAll('[data-inc]').forEach(btn => {
+        btn.addEventListener('click', () => changeQty(btn.dataset.inc, 1));
+      });
+      els.orderState.querySelectorAll('[data-dec]').forEach(btn => {
+        btn.addEventListener('click', () => changeQty(btn.dataset.dec, -1));
+      });
+      document.getElementById('clearOrderBtn')?.addEventListener('click', clearCurrentOrder);
+      document.getElementById('completeOrderBtn')?.addEventListener('click', completeOrder);
+      document.getElementById('manageTablesOpenBtn')?.addEventListener('click', () => openDialog('tables'));
+    }
+
+    function renderHistory() {
+      const query = state.historySearch;
+      const filtered = state.history.filter(entry => {
+        const hay = [
+          entry.tableName,
+          ...entry.items.map(i => i.name)
+        ].join(' ').toLowerCase();
+        return !query || hay.includes(query);
+      });
+
+      els.historyList.innerHTML = '';
+
+      if (!filtered.length) {
+        els.historyList.innerHTML = '<div class="empty-state">История пока пустая</div>';
+        return;
+      }
+
+      filtered.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.innerHTML = `
+          <div class="history-card-header">
+            <div>
+              <div class="history-card-title">Стол ${escapeHtml(entry.tableName)}</div>
+              <div class="muted">${entry.items.length} товаров</div>
+            </div>
+            <div class="history-card-time">${formatDate(entry.createdAt)}</div>
+          </div>
+          <div class="history-items">
+            ${entry.items.map(item => `<div class="history-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.price * item.qty)}</strong></div>`).join('')}
+          </div>
+          <div class="history-footer">
+            <div class="total-pill">${money(entry.total)}</div>
+            <div class="controls-row">
+              <button class="btn btn-ghost small" data-repeat="${entry.id}">Повторить</button>
+              <button class="btn btn-danger small" data-delete-history="${entry.id}">Удалить</button>
+            </div>
+          </div>
+        `;
+        card.querySelector('[data-repeat]')?.addEventListener('click', () => repeatOrder(entry.id));
+        card.querySelector('[data-delete-history]')?.addEventListener('click', () => deleteHistoryEntry(entry.id));
+        els.historyList.appendChild(card);
+      });
+    }
+
+    function renderManageTables() {
+      els.manageTablesList.innerHTML = '';
+      state.tables.forEach(table => {
+        const row = document.createElement('div');
+        row.className = 'mini-row';
+        row.innerHTML = `
+          <input class="input" value="${escapeAttr(table.name)}" data-table-name="${table.id}" />
+          <button class="btn btn-ghost small" data-save-table="${table.id}">Сохранить</button>
+          <button class="btn btn-danger small" data-remove-table="${table.id}">✕</button>
+        `;
+        row.querySelector('[data-save-table]')?.addEventListener('click', () => {
+          const input = row.querySelector('[data-table-name]');
+          renameTable(table.id, input.value);
+        });
+        row.querySelector('[data-remove-table]')?.addEventListener('click', () => removeTable(table.id));
+        els.manageTablesList.appendChild(row);
+      });
+    }
+
+    function addTable(rawName, fromDialog = false) {
+      const name = String(rawName || '').trim();
+      if (!name) return toast('Введи название стола', 'error');
+      state.tables.push({ id: uid(), name });
+      if (!state.selectedTableId) state.selectedTableId = state.tables[state.tables.length - 1].id;
+      save();
+      renderTables();
+      renderOrder();
+      renderManageTables();
+      if (fromDialog) els.dialogTableInput.value = '';
+      else els.newTableInput.value = '';
+      toast(`Стол «${name}» добавлен`, 'success');
+    }
+
+    function renameTable(tableId, rawName) {
+      const name = String(rawName || '').trim();
+      if (!name) return toast('Название не может быть пустым', 'error');
+      const table = state.tables.find(t => t.id === tableId);
+      if (!table) return;
+      table.name = name;
+      save();
+      renderTables();
+      renderOrder();
+      renderHistory();
+      renderManageTables();
+      toast('Название стола обновлено', 'success');
+    }
+
+    function removeTable(tableId) {
+      const table = state.tables.find(t => t.id === tableId);
+      if (!table) return;
+      if (!confirm(`Удалить стол «${table.name}»?`)) return;
+
+      delete state.orders[tableId];
+      state.tables = state.tables.filter(t => t.id !== tableId);
+      ensureSelectedTable();
+      save();
+      renderAll();
+      toast('Стол удалён', 'success');
+    }
+
+    function saveProduct() {
+      const name = els.productNameInput.value.trim();
+      const price = Number(els.productPriceInput.value);
+      const category = els.productCategoryInput.value.trim() || 'Без категории';
+
+      if (!name) return toast('Введи название товара', 'error');
+      if (!Number.isFinite(price) || price < 0) return toast('Укажи корректную цену', 'error');
+
+      state.products.unshift({ id: uid(), name, price, category });
+      save();
+      renderCategories();
+      renderProducts();
+      closeDialog('product');
+      els.productNameInput.value = '';
+      els.productPriceInput.value = '';
+      els.productCategoryInput.value = '';
+      toast(`Товар «${name}» добавлен`, 'success');
+    }
+
+    function addProductToOrder(productId) {
+      const tableId = state.selectedTableId;
+      if (!tableId) return toast('Сначала создай или выбери стол', 'error');
+
+      const product = state.products.find(p => p.id === productId);
+      if (!product) return;
+
+      const order = state.orders[tableId] || [];
+      const existing = order.find(item => item.productId === productId);
+
+      if (existing) existing.qty += 1;
+      else order.push({ productId, qty: 1 });
+
+      state.orders[tableId] = order;
+      save();
+      renderTables();
+      renderOrder();
+      toast(`Добавлено: ${product.name}`, 'success');
+    }
+
+    function changeQty(productId, diff) {
+      const tableId = state.selectedTableId;
+      const order = state.orders[tableId] || [];
+      const item = order.find(i => i.productId === productId);
+      if (!item) return;
+      item.qty += diff;
+      if (item.qty <= 0) {
+        state.orders[tableId] = order.filter(i => i.productId !== productId);
+      }
+      save();
+      renderTables();
+      renderOrder();
+    }
+
+    function clearCurrentOrder() {
+      const tableId = state.selectedTableId;
+      if (!tableId || !(state.orders[tableId] || []).length) return;
+      if (!confirm('Очистить текущий заказ?')) return;
+      state.orders[tableId] = [];
+      save();
+      renderTables();
+      renderOrder();
+      toast('Заказ очищен');
+    }
+
+    function completeOrder() {
+      const table = state.tables.find(t => t.id === state.selectedTableId);
+      const order = state.orders[state.selectedTableId] || [];
+      if (!table || !order.length) return toast('Заказ пустой', 'error');
+
+      const items = order.map(item => {
+        const product = state.products.find(p => p.id === item.productId);
+        return {
+          productId: item.productId,
+          name: product?.name || 'Неизвестный товар',
+          qty: item.qty,
+          price: product?.price || 0
+        };
+      });
+
+      const entry = {
+        id: uid(),
+        tableId: table.id,
+        tableName: table.name,
+        createdAt: new Date().toISOString(),
+        items,
+        total: items.reduce((sum, item) => sum + item.price * item.qty, 0)
+      };
+
+      state.history.unshift(entry);
+      state.orders[table.id] = [];
+      save();
+      renderTables();
+      renderOrder();
+      renderHistory();
+      toast(`Заказ по столу ${table.name} закрыт`, 'success');
+    }
+
+    function deleteHistoryEntry(entryId) {
+      if (!confirm('Удалить запись из истории?')) return;
+      state.history = state.history.filter(item => item.id !== entryId);
+      save();
+      renderHistory();
+      toast('Запись удалена');
+    }
+
+    function repeatOrder(entryId) {
+      const entry = state.history.find(item => item.id === entryId);
+      const tableId = state.selectedTableId;
+      if (!entry) return;
+      if (!tableId) return toast('Нет выбранного стола', 'error');
+
+      state.orders[tableId] = entry.items.map(item => ({
+        productId: item.productId,
+        qty: item.qty
+      }));
+      save();
+      renderTables();
+      renderOrder();
+      toast('Заказ перенесён в текущий стол', 'success');
+    }
+
+    function getOrderTotal(order) {
+      return order.reduce((sum, item) => {
+        const product = state.products.find(p => p.id === item.productId);
+        return sum + (product?.price || 0) * item.qty;
+      }, 0);
+    }
+
+    function money(value) {
+      return `${Number(value || 0).toLocaleString('ru-RU')} ₽`;
+    }
+
+    function formatDate(iso) {
+      const date = new Date(iso);
+      return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    }
+
+    function openDialog(name) {
+      if (name === 'product') els.productDialogBackdrop.classList.add('open');
+      if (name === 'tables') {
+        renderManageTables();
+        els.manageTablesBackdrop.classList.add('open');
+      }
+    }
+
+    function closeDialog(name) {
+      if (name === 'product') els.productDialogBackdrop.classList.remove('open');
+      if (name === 'tables') els.manageTablesBackdrop.classList.remove('open');
+    }
+
+    function toast(message, type = '') {
+      const node = document.createElement('div');
+      node.className = `toast ${type}`.trim();
+      node.textContent = message;
+      els.toastWrap.appendChild(node);
+      setTimeout(() => node.remove(), 2600);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value);
+    }
+  </script>
 </body>
 </html>
