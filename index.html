@@ -568,18 +568,39 @@
     }
 
     async function initSupabase() {
-      setDbStatus('Проверка базы...');
-      const ok = await ensureSchema();
-      if (!ok) {
-        setDbStatus('Локальный режим');
-        toast('Supabase не готов. Работает локальный режим.');
-        return;
+      try {
+        setDbStatus('Проверка базы...');
+        const ok = await ensureSchema();
+        if (!ok) {
+          dbReady = false;
+          setDbStatus('Локальный режим');
+          state = loadLocal();
+          if (!state.tables?.length) state.tables = structuredCloneSafe(initialState.tables);
+          if (!state.products?.length) state.products = structuredCloneSafe(initialState.products);
+          if (!state.selectedTableId) state.selectedTableId = state.tables[0]?.id || null;
+          saveLocal();
+          renderAll();
+          toast('Supabase не готов. Работает локальный режим.');
+          return;
+        }
+
+        dbReady = true;
+        setDbStatus('Supabase онлайн');
+        await bootstrapDataIfEmpty();
+        await loadFromSupabase();
+        setupRealtime();
+      } catch (e) {
+        console.error('initSupabase error:', e);
+        dbReady = false;
+        setDbStatus('Ошибка базы');
+        state = loadLocal();
+        if (!state.tables?.length) state.tables = structuredCloneSafe(initialState.tables);
+        if (!state.products?.length) state.products = structuredCloneSafe(initialState.products);
+        if (!state.selectedTableId) state.selectedTableId = state.tables[0]?.id || null;
+        saveLocal();
+        renderAll();
+        toast('Ошибка подключения к Supabase. Включен локальный режим.');
       }
-      dbReady = true;
-      setDbStatus('Supabase онлайн');
-      await bootstrapDataIfEmpty();
-      await loadFromSupabase();
-      setupRealtime();
     }
 
     function setDbStatus(text) {
@@ -588,32 +609,49 @@
 
     async function ensureSchema() {
       try {
-        const { error } = await supabase.from('wp_tables').select('id').limit(1);
-        return !error;
+        const checks = await Promise.all([
+          supabase.from('wp_tables').select('id').limit(1),
+          supabase.from('wp_products').select('id').limit(1),
+          supabase.from('wp_orders').select('table_id').limit(1),
+          supabase.from('wp_history').select('id').limit(1),
+          supabase.from('wp_settings').select('id').limit(1)
+        ]);
+        return checks.every(result => !result.error);
       } catch {
         return false;
       }
     }
 
     async function bootstrapDataIfEmpty() {
-      const { count: tablesCount } = await supabase.from('wp_tables').select('*', { count: 'exact', head: true });
-      const { count: productsCount } = await supabase.from('wp_products').select('*', { count: 'exact', head: true });
-      const { data: settingsRow } = await supabase.from('wp_settings').select('*').eq('id', 'main').maybeSingle();
+      try {
+        const [{ count: tablesCount, error: tablesErr }, { count: productsCount, error: productsErr }, settingsRes] = await Promise.all([
+          supabase.from('wp_tables').select('*', { count: 'exact', head: true }),
+          supabase.from('wp_products').select('*', { count: 'exact', head: true }),
+          supabase.from('wp_settings').select('*').eq('id', 'main').maybeSingle()
+        ]);
 
-      if (!tablesCount) {
-        await supabase.from('wp_tables').insert(initialState.tables.map(t => ({ id: t.id, name: t.name, zone: t.zone, seats: t.seats })));
-      }
-      if (!productsCount) {
-        await supabase.from('wp_products').insert(initialState.products.map(p => ({ id: p.id, name: p.name, price: p.price, category: p.category, popular: p.popular })));
-      }
-      if (!settingsRow) {
-        await supabase.from('wp_settings').upsert([{ id: 'main', service_percent: 0, show_only_free: false }], { onConflict: 'id' });
+        if (tablesErr || productsErr || settingsRes.error) {
+          throw new Error('Ошибка проверки стартовых данных');
+        }
+
+        if ((tablesCount ?? 0) === 0) {
+          await supabase.from('wp_tables').insert(initialState.tables.map(t => ({ id: t.id, name: t.name, zone: t.zone, seats: t.seats })));
+        }
+        if ((productsCount ?? 0) === 0) {
+          await supabase.from('wp_products').insert(initialState.products.map(p => ({ id: p.id, name: p.name, price: p.price, category: p.category, popular: p.popular })));
+        }
+        if (!settingsRes.data) {
+          await supabase.from('wp_settings').upsert([{ id: 'main', service_percent: 0, show_only_free: false }], { onConflict: 'id' });
+        }
+      } catch (e) {
+        console.error('bootstrapDataIfEmpty error:', e);
+        throw e;
       }
     }
 
     async function loadFromSupabase() {
       try {
-        const [{ data: tables }, { data: products }, { data: orders }, { data: history }, { data: settings }] = await Promise.all([
+        const [{ data: tables, error: tablesErr }, { data: products, error: productsErr }, { data: orders, error: ordersErr }, { data: history, error: historyErr }, { data: settings, error: settingsErr }] = await Promise.all([
           supabase.from('wp_tables').select('*').order('name'),
           supabase.from('wp_products').select('*').order('name'),
           supabase.from('wp_orders').select('*'),
@@ -621,9 +659,17 @@
           supabase.from('wp_settings').select('*').eq('id', 'main').maybeSingle()
         ]);
 
-        state.tables = (tables || []).map(t => ({ id: t.id, name: t.name, zone: t.zone || 'Зал', seats: t.seats || 4 }));
-        state.products = (products || []).map(p => ({ id: p.id, name: p.name, price: p.price || 0, category: p.category || 'Еда', popular: !!p.popular }));
+        if (tablesErr || productsErr || ordersErr || historyErr || settingsErr) {
+          throw new Error('Ошибка чтения данных из Supabase');
+        }
+
+        const nextTables = (tables || []).map(t => ({ id: t.id, name: t.name, zone: t.zone || 'Зал', seats: t.seats || 4 }));
+        const nextProducts = (products || []).map(p => ({ id: p.id, name: p.name, price: p.price || 0, category: p.category || 'Еда', popular: !!p.popular }));
+
+        state.tables = nextTables.length ? nextTables : structuredCloneSafe(initialState.tables);
+        state.products = nextProducts.length ? nextProducts : structuredCloneSafe(initialState.products);
         state.orders = {};
+
         (orders || []).forEach(o => {
           state.orders[o.table_id] = {
             items: Array.isArray(o.items) ? o.items : [],
@@ -633,6 +679,7 @@
             note: o.note || ''
           };
         });
+
         state.history = (history || []).map(h => ({
           id: h.id,
           tableId: h.table_id,
@@ -643,18 +690,28 @@
           items: Array.isArray(h.items) ? h.items : [],
           total: h.total || 0
         }));
+
         if (settings) {
           state.settings.servicePercent = settings.service_percent || 0;
           state.settings.showOnlyFree = !!settings.show_only_free;
         }
+
         if (!state.selectedTableId || !state.tables.some(t => t.id === state.selectedTableId)) {
           state.selectedTableId = state.tables[0]?.id || null;
         }
+
         saveLocal();
         renderAll();
       } catch (e) {
-        console.error(e);
-        toast('Ошибка загрузки из Supabase');
+        console.error('loadFromSupabase error:', e);
+        dbReady = false;
+        setDbStatus('Ошибка базы');
+        if (!state.tables?.length) state.tables = structuredCloneSafe(initialState.tables);
+        if (!state.products?.length) state.products = structuredCloneSafe(initialState.products);
+        if (!state.selectedTableId) state.selectedTableId = state.tables[0]?.id || null;
+        saveLocal();
+        renderAll();
+        toast('Не удалось загрузить данные из Supabase.');
       }
     }
 
