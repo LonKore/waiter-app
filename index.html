@@ -138,6 +138,28 @@
             align-items: center;
         }
 
+        .online-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #10b981;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
         .search-box {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -173,18 +195,17 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .filter-tab {
-            flex: 1;
-            padding: 10px;
+            padding: 8px 16px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 30px;
             color: rgba(255, 255, 255, 0.6);
             font-size: 14px;
             font-weight: 500;
-            text-align: center;
             cursor: pointer;
             transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
@@ -262,6 +283,34 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .category-tab {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .category-tab.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            border-color: transparent;
+        }
+
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -309,6 +358,18 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             pointer-events: none;
+        }
+
+        .product-category {
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            background: #3b82f6;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
         }
 
         .delete-product {
@@ -916,6 +977,27 @@
         .add-table-form button:active {
             transform: scale(0.95);
         }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+            border-radius: 40px;
+            padding: 12px 24px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5);
+            z-index: 2000;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -939,8 +1021,11 @@
         <div class="section active" id="currentSection">
             <div class="tables-section">
                 <div class="section-label">
-                    СТОЛЫ
-                    <button class="edit-tables-btn" id="editTablesBtn">✎ Редактировать</button>
+                    <span>СТОЛЫ</span>
+                    <div class="online-indicator">
+                        <span class="online-dot"></span>
+                        <span id="onlineStatus">Онлайн</span>
+                    </div>
                 </div>
                 <div class="tables-grid" id="tablesContainer"></div>
             </div>
@@ -952,6 +1037,23 @@
                         <span>+</span> Добавить
                     </button>
                 </div>
+                
+                <!-- Поиск по меню -->
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
+                    </svg>
+                    <input type="text" id="menuSearch" placeholder="Поиск в меню...">
+                </div>
+                
+                <!-- Категории -->
+                <div class="category-tabs" id="categoryTabs">
+                    <button class="category-tab active" data-category="all">Все</button>
+                    <button class="category-tab" data-category="Пиво">🍺 Пиво</button>
+                    <button class="category-tab" data-category="Еда">🍗 Еда</button>
+                    <button class="category-tab" data-category="Напитки">🧃 Напитки</button>
+                </div>
+                
                 <div class="menu-grid" id="productsContainer"></div>
             </div>
 
@@ -974,9 +1076,15 @@
         </div>
 
         <div class="section" id="historySection">
-            <div class="section-label">ИСТОРИЯ ЗАКАЗОВ</div>
+            <div class="section-label">
+                ИСТОРИЯ ЗАКАЗОВ
+                <div class="online-indicator">
+                    <span class="online-dot"></span>
+                    <span id="historyOnlineStatus">Онлайн</span>
+                </div>
+            </div>
             
-            <!-- Поиск и фильтры -->
+            <!-- Поиск по истории -->
             <div class="search-box">
                 <svg viewBox="0 0 24 24">
                     <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
@@ -986,8 +1094,8 @@
             
             <div class="filter-tabs">
                 <button class="filter-tab active" data-filter="all">Все</button>
-                <button class="filter-tab" data-filter="pinned">Закрепленные</button>
-                <button class="filter-tab" data-filter="today">Сегодня</button>
+                <button class="filter-tab" data-filter="pinned">📌 Закрепленные</button>
+                <button class="filter-tab" data-filter="today">📅 Сегодня</button>
             </div>
             
             <div class="history-list" id="historyContainer">
@@ -998,6 +1106,10 @@
         <div class="footer-note">Нажмите на товар • +/- в заказе</div>
     </div>
 
+    <!-- Тосты для уведомлений -->
+    <div id="toastContainer"></div>
+
+    <!-- Модальное окно настроек -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-title">⚙️ Настройки</div>
@@ -1051,95 +1163,106 @@
             // ============================================
             const SUPABASE_URL = 'https://sbogpobfdlpxjdtbbmln.supabase.co';
             const SUPABASE_KEY = 'sb_publishable_Jd2iPn2HX3IDw-sqxhXhwA_mc1W2pHY';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                realtime: {
+                    params: {
+                        eventsPerSecond: 10
+                    }
+                }
+            });
 
             // ============================================
             // ВСЕ ТОВАРЫ ИЗ ВАШИХ ФОТОГРАФИЙ
             // ============================================
             const INITIAL_PRODUCTS = [
-                { id: 1, name: 'Берлинер Вайссе 2', price: 0 },
-                { id: 2, name: 'Гозе 13', price: 0 },
-                { id: 3, name: 'Зависимость', price: 0 },
-                { id: 4, name: 'AРТ Бланш', price: 0 },
-                { id: 5, name: 'Вторая личность', price: 0 },
-                { id: 6, name: 'Зависимость 1', price: 0 },
-                { id: 7, name: '4B, А.І. Кактус Манго Клубника', price: 0 },
-                { id: 8, name: '4B, Доза Тропик Клубника', price: 0 },
-                { id: 9, name: 'A million little pieces', price: 0 },
-                { id: 10, name: 'Art APA', price: 0 },
-                { id: 11, name: 'Base', price: 0 },
-                { id: 12, name: 'every you every me', price: 0 },
-                { id: 13, name: 'Here to Stay', price: 0 },
-                { id: 14, name: 'Let Love In', price: 0 },
-                { id: 15, name: 'mu - mushroom gose', price: 0 },
-                { id: 16, name: 'Pr - Prince of Darkness', price: 0 },
-                { id: 17, name: 'Re - Rewort, Шоковая Заморозка', price: 0 },
-                { id: 18, name: 'Sh - Shroomdalf', price: 0 },
-                { id: 19, name: 'Sh - Shroomdalf Herbs', price: 0 },
-                { id: 20, name: 'To - Tomato Method', price: 0 },
-                { id: 21, name: 'Jm - Umeboshi', price: 0 },
-                { id: 22, name: 'Vi - Village Kolsh', price: 0 },
-                { id: 23, name: 'B - В собственном соку:Вишня', price: 0 },
-                { id: 24, name: 'Be - Верность клубника', price: 0 },
-                { id: 25, name: 'Be - Верхогляд', price: 0 },
-                { id: 26, name: 'Гл - Гласность', price: 0 },
-                { id: 27, name: 'Го - Гольян', price: 0 },
-                { id: 28, name: 'Ди - Диего М', price: 0 },
-                { id: 29, name: 'жжешь Лесной орех', price: 0 },
-                { id: 30, name: 'жжешь Макарони', price: 0 },
-                { id: 31, name: 'КОВЕН ВЕР ДИД ЗЕ ЭНЖЕЛС ГС', price: 0 },
-                { id: 32, name: 'КОВЕН АНДЕР ЗЕ БРИДЖ', price: 0 },
-                { id: 33, name: 'Лагер 9 (Pils) банка 045 030000', price: 0 },
-                { id: 34, name: 'Мэджик Месс Таг ми', price: 0 },
-                { id: 35, name: 'Саур эль 16', price: 0 },
-                { id: 36, name: 'Сладкий статут 3 (C Is For Cookie)', price: 0 },
-                { id: 37, name: 'Хоп Хэдшот 5', price: 0 },
-                { id: 38, name: 'Хопхэд гозе 14', price: 0 },
-                { id: 39, name: 'ИПАТЕРАПИЯ', price: 0 },
-                { id: 40, name: 'Нью 13', price: 0 },
-                { id: 41, name: 'Русалка', price: 0 },
-                { id: 42, name: 'Зависимость Зеленые оливки', price: 0 },
-                { id: 43, name: 'КУХНИ МИРА: ИТАЛИЯ', price: 0 },
-                { id: 44, name: 'КУХНИ МИРА: РОСТОВСКИЕ РАБОТЫ', price: 0 },
-                { id: 45, name: 'ОГОРОДИШЬ: МАРИНОВАННЫЕ ДЕНЬГИ', price: 0 },
-                { id: 46, name: 'Острая Зависимость', price: 0 },
-                { id: 47, name: 'Салденс Сикс Хопс Американ и Европа', price: 0 },
-                { id: 48, name: 'СБ Шрумдальф 2', price: 0 },
-                { id: 49, name: 'Традиционное легендарное (Третий)', price: 0 },
-                { id: 50, name: 'СБ Летучая Мышь', price: 0 },
-                { id: 51, name: 'Кубанский пирог яблоко корица', price: 0 },
-                { id: 52, name: 'Новогодний Огонек', price: 0 },
-                { id: 53, name: 'Рашн хулиганс', price: 0 },
-                { id: 54, name: 'Синец', price: 0 },
-                { id: 55, name: 'СИНЕЦ', price: 0 },
-                { id: 56, name: 'Салденс Сикс Хопс Американ ИП', price: 0 },
-                { id: 57, name: 'СБ Шрумдальф 2 (дубль)', price: 0 },
-                { id: 58, name: 'Традиционное легендарное (Тр)', price: 0 },
-                { id: 59, name: 'Смелость', price: 0 },
-                { id: 60, name: 'Хеллес 451', price: 0 },
-                { id: 61, name: 'шоковая заморозка', price: 0 },
-                { id: 62, name: 'Юность Ломоносова с ребенком', price: 0 },
-                { id: 63, name: 'Пивчики куриные 100 г', price: 0 },
-                { id: 64, name: 'Арахис', price: 0 },
-                { id: 65, name: 'Гренки 150г', price: 0 },
-                { id: 66, name: 'Карпаччо 100 г', price: 0 },
-                { id: 67, name: 'Картофель ФРИ 150 г', price: 0 },
-                { id: 68, name: 'Кофе', price: 0 },
-                { id: 69, name: 'Крылышки', price: 0 },
-                { id: 70, name: 'Сендвич', price: 0 },
-                { id: 71, name: 'Фисташки', price: 0 },
-                { id: 72, name: 'Чай', price: 0 },
-                { id: 73, name: 'Чипсы мясные свинина 100 г', price: 0 },
-                { id: 74, name: 'Чичаррон 50г', price: 0 },
-                { id: 75, name: 'Bananed', price: 0 },
-                { id: 76, name: 'Blueberry vanilla', price: 0 },
-                { id: 77, name: 'Michael J', price: 0 },
-                { id: 78, name: 'Murquell Pilsner', price: 0 },
-                { id: 79, name: 'Nutty Nut', price: 0 },
-                { id: 80, name: 'Морс', price: 0 },
-                { id: 81, name: 'Морс Л', price: 0 },
-                { id: 82, name: 'Морс Х', price: 0 },
-                { id: 83, name: 'Стаут Холодное Пламя', price: 0 }
+                // Пиво (1-62)
+                { id: 1, name: 'Берлинер Вайссе 2', price: 0, category: 'Пиво' },
+                { id: 2, name: 'Гозе 13', price: 0, category: 'Пиво' },
+                { id: 3, name: 'Зависимость', price: 0, category: 'Пиво' },
+                { id: 4, name: 'AРТ Бланш', price: 0, category: 'Пиво' },
+                { id: 5, name: 'Вторая личность', price: 0, category: 'Пиво' },
+                { id: 6, name: 'Зависимость 1', price: 0, category: 'Пиво' },
+                { id: 7, name: '4B, А.І. Кактус Манго Клубника', price: 0, category: 'Пиво' },
+                { id: 8, name: '4B, Доза Тропик Клубника', price: 0, category: 'Пиво' },
+                { id: 9, name: 'A million little pieces', price: 0, category: 'Пиво' },
+                { id: 10, name: 'Art APA', price: 0, category: 'Пиво' },
+                { id: 11, name: 'Base', price: 0, category: 'Пиво' },
+                { id: 12, name: 'every you every me', price: 0, category: 'Пиво' },
+                { id: 13, name: 'Here to Stay', price: 0, category: 'Пиво' },
+                { id: 14, name: 'Let Love In', price: 0, category: 'Пиво' },
+                { id: 15, name: 'mu - mushroom gose', price: 0, category: 'Пиво' },
+                { id: 16, name: 'Pr - Prince of Darkness', price: 0, category: 'Пиво' },
+                { id: 17, name: 'Re - Rewort, Шоковая Заморозка', price: 0, category: 'Пиво' },
+                { id: 18, name: 'Sh - Shroomdalf', price: 0, category: 'Пиво' },
+                { id: 19, name: 'Sh - Shroomdalf Herbs', price: 0, category: 'Пиво' },
+                { id: 20, name: 'To - Tomato Method', price: 0, category: 'Пиво' },
+                { id: 21, name: 'Jm - Umeboshi', price: 0, category: 'Пиво' },
+                { id: 22, name: 'Vi - Village Kolsh', price: 0, category: 'Пиво' },
+                { id: 23, name: 'B - В собственном соку:Вишня', price: 0, category: 'Пиво' },
+                { id: 24, name: 'Be - Верность клубника', price: 0, category: 'Пиво' },
+                { id: 25, name: 'Be - Верхогляд', price: 0, category: 'Пиво' },
+                { id: 26, name: 'Гл - Гласность', price: 0, category: 'Пиво' },
+                { id: 27, name: 'Го - Гольян', price: 0, category: 'Пиво' },
+                { id: 28, name: 'Ди - Диего М', price: 0, category: 'Пиво' },
+                { id: 29, name: 'жжешь Лесной орех', price: 0, category: 'Пиво' },
+                { id: 30, name: 'жжешь Макарони', price: 0, category: 'Пиво' },
+                { id: 31, name: 'КОВЕН ВЕР ДИД ЗЕ ЭНЖЕЛС ГС', price: 0, category: 'Пиво' },
+                { id: 32, name: 'КОВЕН АНДЕР ЗЕ БРИДЖ', price: 0, category: 'Пиво' },
+                { id: 33, name: 'Лагер 9 (Pils) банка 045 030000', price: 0, category: 'Пиво' },
+                { id: 34, name: 'Мэджик Месс Таг ми', price: 0, category: 'Пиво' },
+                { id: 35, name: 'Саур эль 16', price: 0, category: 'Пиво' },
+                { id: 36, name: 'Сладкий статут 3 (C Is For Cookie)', price: 0, category: 'Пиво' },
+                { id: 37, name: 'Хоп Хэдшот 5', price: 0, category: 'Пиво' },
+                { id: 38, name: 'Хопхэд гозе 14', price: 0, category: 'Пиво' },
+                { id: 39, name: 'ИПАТЕРАПИЯ', price: 0, category: 'Пиво' },
+                { id: 40, name: 'Нью 13', price: 0, category: 'Пиво' },
+                { id: 41, name: 'Русалка', price: 0, category: 'Пиво' },
+                { id: 42, name: 'Зависимость Зеленые оливки', price: 0, category: 'Пиво' },
+                { id: 43, name: 'КУХНИ МИРА: ИТАЛИЯ', price: 0, category: 'Пиво' },
+                { id: 44, name: 'КУХНИ МИРА: РОСТОВСКИЕ РАБОТЫ', price: 0, category: 'Пиво' },
+                { id: 45, name: 'ОГОРОДИШЬ: МАРИНОВАННЫЕ ДЕНЬГИ', price: 0, category: 'Пиво' },
+                { id: 46, name: 'Острая Зависимость', price: 0, category: 'Пиво' },
+                { id: 47, name: 'Салденс Сикс Хопс Американ и Европа', price: 0, category: 'Пиво' },
+                { id: 48, name: 'СБ Шрумдальф 2', price: 0, category: 'Пиво' },
+                { id: 49, name: 'Традиционное легендарное (Третий)', price: 0, category: 'Пиво' },
+                { id: 50, name: 'СБ Летучая Мышь', price: 0, category: 'Пиво' },
+                { id: 51, name: 'Кубанский пирог яблоко корица', price: 0, category: 'Пиво' },
+                { id: 52, name: 'Новогодний Огонек', price: 0, category: 'Пиво' },
+                { id: 53, name: 'Рашн хулиганс', price: 0, category: 'Пиво' },
+                { id: 54, name: 'Синец', price: 0, category: 'Пиво' },
+                { id: 55, name: 'СИНЕЦ', price: 0, category: 'Пиво' },
+                { id: 56, name: 'Салденс Сикс Хопс Американ ИП', price: 0, category: 'Пиво' },
+                { id: 57, name: 'СБ Шрумдальф 2 (дубль)', price: 0, category: 'Пиво' },
+                { id: 58, name: 'Традиционное легендарное (Тр)', price: 0, category: 'Пиво' },
+                { id: 59, name: 'Смелость', price: 0, category: 'Пиво' },
+                { id: 60, name: 'Хеллес 451', price: 0, category: 'Пиво' },
+                { id: 61, name: 'шоковая заморозка', price: 0, category: 'Пиво' },
+                { id: 62, name: 'Юность Ломоносова с ребенком', price: 0, category: 'Пиво' },
+                
+                // Еда (63-74)
+                { id: 63, name: 'Пивчики куриные 100 г', price: 0, category: 'Еда' },
+                { id: 64, name: 'Арахис', price: 0, category: 'Еда' },
+                { id: 65, name: 'Гренки 150г', price: 0, category: 'Еда' },
+                { id: 66, name: 'Карпаччо 100 г', price: 0, category: 'Еда' },
+                { id: 67, name: 'Картофель ФРИ 150 г', price: 0, category: 'Еда' },
+                { id: 68, name: 'Кофе', price: 0, category: 'Напитки' },
+                { id: 69, name: 'Крылышки', price: 0, category: 'Еда' },
+                { id: 70, name: 'Сендвич', price: 0, category: 'Еда' },
+                { id: 71, name: 'Фисташки', price: 0, category: 'Еда' },
+                { id: 72, name: 'Чай', price: 0, category: 'Напитки' },
+                { id: 73, name: 'Чипсы мясные свинина 100 г', price: 0, category: 'Еда' },
+                { id: 74, name: 'Чичаррон 50г', price: 0, category: 'Еда' },
+                
+                // Напитки (75-83)
+                { id: 75, name: 'Bananed', price: 0, category: 'Напитки' },
+                { id: 76, name: 'Blueberry vanilla', price: 0, category: 'Напитки' },
+                { id: 77, name: 'Michael J', price: 0, category: 'Напитки' },
+                { id: 78, name: 'Murquell Pilsner', price: 0, category: 'Пиво' },
+                { id: 79, name: 'Nutty Nut', price: 0, category: 'Напитки' },
+                { id: 80, name: 'Морс', price: 0, category: 'Напитки' },
+                { id: 81, name: 'Морс Л', price: 0, category: 'Напитки' },
+                { id: 82, name: 'Морс Х', price: 0, category: 'Напитки' },
+                { id: 83, name: 'Стаут Холодное Пламя', price: 0, category: 'Пиво' }
             ];
 
             // Начальные столы
@@ -1158,6 +1281,8 @@
             let pinnedOrders = JSON.parse(localStorage.getItem('pinned_orders') || '[]');
             let currentFilter = 'all';
             let searchQuery = '';
+            let menuSearchQuery = '';
+            let selectedCategory = 'all';
 
             // DOM элементы
             const settingsBtn = document.getElementById('settingsBtn');
@@ -1179,7 +1304,117 @@
             const currentSection = document.getElementById('currentSection');
             const historySection = document.getElementById('historySection');
             const historySearch = document.getElementById('historySearch');
+            const menuSearch = document.getElementById('menuSearch');
+            const categoryTabs = document.querySelectorAll('.category-tab');
             const filterTabs = document.querySelectorAll('.filter-tab');
+            const toastContainer = document.getElementById('toastContainer');
+            const onlineStatus = document.getElementById('onlineStatus');
+            const historyOnlineStatus = document.getElementById('historyOnlineStatus');
+
+            // ============================================
+            // УВЕДОМЛЕНИЯ
+            // ============================================
+            function showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.style.background = type === 'success' ? '#10b981' : '#3b82f6';
+                toast.textContent = message;
+                toastContainer.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+
+            // ============================================
+            // REALTIME ПОДПИСКИ
+            // ============================================
+            function setupRealtimeSubscriptions() {
+                // Подписка на новые заказы
+                supabase
+                    .channel('orders-channel')
+                    .on('postgres_changes', 
+                        { event: 'INSERT', schema: 'public', table: 'orders' },
+                        async (payload) => {
+                            console.log('Новый заказ:', payload);
+                            const newOrder = {
+                                id: payload.new.id,
+                                tableId: payload.new.table_id,
+                                tableName: tables.find(t => t.id === payload.new.table_id)?.name || `Стол ${payload.new.table_id}`,
+                                time: new Date(payload.new.created_at).toLocaleString('ru-RU', {
+                                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                                }),
+                                rawDate: new Date(payload.new.created_at),
+                                items: payload.new.items,
+                                total: payload.new.total
+                            };
+                            
+                            orderHistory = [newOrder, ...orderHistory];
+                            
+                            if (historySection.classList.contains('active')) {
+                                renderHistory();
+                            }
+                            
+                            showToast('🔔 Новый заказ!', 'success');
+                        }
+                    )
+                    .subscribe();
+
+                // Подписка на удаление заказов
+                supabase
+                    .channel('orders-delete-channel')
+                    .on('postgres_changes', 
+                        { event: 'DELETE', schema: 'public', table: 'orders' },
+                        (payload) => {
+                            console.log('Заказ удален:', payload);
+                            orderHistory = orderHistory.filter(o => o.id !== payload.old.id);
+                            
+                            if (historySection.classList.contains('active')) {
+                                renderHistory();
+                            }
+                        }
+                    )
+                    .subscribe();
+
+                // Подписка на обновление столов
+                supabase
+                    .channel('tables-channel')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'tables' },
+                        async () => {
+                            await loadTablesFromDB();
+                            renderTables();
+                        }
+                    )
+                    .subscribe();
+
+                // Подписка на обновление товаров
+                supabase
+                    .channel('products-channel')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'products' },
+                        async () => {
+                            await loadProductsFromDB();
+                            renderProducts();
+                        }
+                    )
+                    .subscribe();
+
+                // Проверка соединения
+                let online = true;
+                window.addEventListener('online', () => {
+                    online = true;
+                    onlineStatus.textContent = 'Онлайн';
+                    historyOnlineStatus.textContent = 'Онлайн';
+                });
+                
+                window.addEventListener('offline', () => {
+                    online = false;
+                    onlineStatus.textContent = 'Офлайн';
+                    historyOnlineStatus.textContent = 'Офлайн';
+                    showToast('📡 Нет подключения к интернету', 'error');
+                });
+            }
 
             // ============================================
             // ЗАГРУЗКА ИЗ БАЗЫ ДАННЫХ
@@ -1218,7 +1453,8 @@
                             await supabase.from('products').insert([{ 
                                 id: product.id, 
                                 name: product.name, 
-                                price: product.price 
+                                price: product.price,
+                                category: product.category 
                             }]);
                         }
                     } else {
@@ -1274,12 +1510,15 @@
 
                     if (error) {
                         console.error('Ошибка сохранения:', error);
-                        alert('Ошибка сохранения заказа');
+                        showToast('❌ Ошибка сохранения заказа', 'error');
                         return false;
                     }
+                    
+                    showToast('✅ Заказ сохранён', 'success');
                     return true;
                 } catch (e) {
                     console.error('Ошибка:', e);
+                    showToast('❌ Ошибка соединения', 'error');
                     return false;
                 }
             }
@@ -1291,8 +1530,10 @@
                         .update(updates)
                         .eq('id', id);
                     if (error) throw error;
+                    showToast('💰 Цена обновлена', 'success');
                 } catch (e) {
                     console.error('Ошибка обновления товара:', e);
+                    showToast('❌ Ошибка обновления', 'error');
                 }
             }
 
@@ -1333,6 +1574,22 @@
                 }
             }
 
+            async function deleteOrderFromDB(id) {
+                try {
+                    const { error } = await supabase
+                        .from('orders')
+                        .delete()
+                        .eq('id', id);
+                    if (error) throw error;
+                    showToast('🗑️ Заказ удалён', 'success');
+                    return true;
+                } catch (e) {
+                    console.error('Ошибка удаления заказа:', e);
+                    showToast('❌ Ошибка удаления', 'error');
+                    return false;
+                }
+            }
+
             // ============================================
             // UI ФУНКЦИИ
             // ============================================
@@ -1355,16 +1612,35 @@
             }
 
             function renderProducts() {
+                let filtered = [...products];
+                
+                // Фильтр по категории
+                if (selectedCategory !== 'all') {
+                    filtered = filtered.filter(p => p.category === selectedCategory);
+                }
+                
+                // Фильтр по поиску
+                if (menuSearchQuery) {
+                    const query = menuSearchQuery.toLowerCase();
+                    filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+                }
+                
                 let html = '';
-                products.forEach(p => {
+                filtered.forEach(p => {
                     html += `
                         <button class="product-btn" data-product-id="${p.id}">
+                            ${p.category ? `<span class="product-category">${p.category === 'Пиво' ? '🍺' : p.category === 'Еда' ? '🍗' : '🧃'}</span>` : ''}
                             <span class="product-name">${p.name}</span>
                             <span class="product-price">${p.price}₽</span>
                         </button>
                     `;
                 });
-                productsContainer.innerHTML = html;
+                
+                if (filtered.length === 0) {
+                    productsContainer.innerHTML = '<div class="empty-cart">Товары не найдены</div>';
+                } else {
+                    productsContainer.innerHTML = html;
+                }
 
                 document.querySelectorAll('.product-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -1376,7 +1652,7 @@
 
             function handleAddProduct(productId) {
                 if (!currentTableId) {
-                    alert('Выберите стол');
+                    showToast('❌ Выберите стол', 'error');
                     return;
                 }
 
@@ -1494,8 +1770,10 @@
                 const index = pinnedOrders.indexOf(orderId);
                 if (index === -1) {
                     pinnedOrders.push(orderId);
+                    showToast('📌 Заказ закреплён', 'success');
                 } else {
                     pinnedOrders.splice(index, 1);
+                    showToast('📌 Закрепление снято', 'info');
                 }
                 localStorage.setItem('pinned_orders', JSON.stringify(pinnedOrders));
                 renderHistory();
@@ -1547,9 +1825,6 @@
                                     <button class="history-action-btn ${isPinned ? 'pin' : ''}" onclick="togglePin(${order.id})">
                                         📌
                                     </button>
-                                    <button class="history-action-btn edit" onclick="editOrder(${order.id})">
-                                        ✎
-                                    </button>
                                     <button class="history-action-btn delete" onclick="deleteOrder(${order.id})">
                                         ×
                                     </button>
@@ -1562,37 +1837,20 @@
                 historyContainer.innerHTML = html;
             }
 
-            // Глобальные функции для работы с историей
+            // Глобальные функции
             window.togglePin = togglePin;
-            
-            window.editOrder = function(orderId) {
-                // Здесь можно добавить редактирование заказа
-                alert('Редактирование заказа будет доступно в следующей версии');
-            };
             
             window.deleteOrder = async function(orderId) {
                 if (confirm('Удалить заказ из истории?')) {
-                    try {
-                        const { error } = await supabase
-                            .from('orders')
-                            .delete()
-                            .eq('id', orderId);
-                        
-                        if (error) throw error;
-                        
-                        // Удаляем из закрепленных
+                    const deleted = await deleteOrderFromDB(orderId);
+                    if (deleted) {
                         const index = pinnedOrders.indexOf(orderId);
                         if (index !== -1) {
                             pinnedOrders.splice(index, 1);
                             localStorage.setItem('pinned_orders', JSON.stringify(pinnedOrders));
                         }
-                        
-                        // Обновляем историю
-                        orderHistory = await loadHistoryFromDB();
+                        orderHistory = orderHistory.filter(o => o.id !== orderId);
                         renderHistory();
-                    } catch (e) {
-                        console.error('Ошибка удаления:', e);
-                        alert('Ошибка при удалении заказа');
                     }
                 }
             };
@@ -1602,13 +1860,13 @@
             // ============================================
             confirmBtn.addEventListener('click', async () => {
                 if (!currentTableId) {
-                    alert('Выберите стол');
+                    showToast('❌ Выберите стол', 'error');
                     return;
                 }
 
                 const order = orders[currentTableId];
                 if (!order || Object.keys(order).length === 0) {
-                    alert('Заказ пуст');
+                    showToast('❌ Заказ пуст', 'error');
                     return;
                 }
 
@@ -1619,10 +1877,7 @@
                 if (saved) {
                     delete orders[currentTableId];
                     renderOrder();
-                    
                     orderHistory = await loadHistoryFromDB();
-                    
-                    alert('Заказ сохранён в базе данных');
                 }
             });
 
@@ -1632,9 +1887,11 @@
                 if (confirm('Очистить заказ?')) {
                     delete orders[currentTableId];
                     renderOrder();
+                    showToast('🗑️ Заказ очищен', 'info');
                 }
             });
 
+            // Переключение табов
             tabCurrent.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tabCurrent.classList.add('active');
@@ -1653,13 +1910,29 @@
                 renderHistory();
             });
 
-            // Поиск
+            // Поиск по истории
             historySearch.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
                 renderHistory();
             });
 
-            // Фильтры
+            // Поиск по меню
+            menuSearch.addEventListener('input', (e) => {
+                menuSearchQuery = e.target.value;
+                renderProducts();
+            });
+
+            // Категории меню
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    categoryTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    selectedCategory = tab.dataset.category;
+                    renderProducts();
+                });
+            });
+
+            // Фильтры истории
             filterTabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     filterTabs.forEach(t => t.classList.remove('active'));
@@ -1803,9 +2076,10 @@
             document.getElementById('addProductBtn').addEventListener('click', () => {
                 const name = prompt('Введите название товара:');
                 if (name) {
+                    const category = prompt('Введите категорию (Пиво/Еда/Напитки):', 'Пиво');
                     const price = parseInt(prompt('Введите цену:', '0')) || 0;
                     const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 84;
-                    products.push({ id: newId, name, price });
+                    products.push({ id: newId, name, price, category });
                     renderProducts();
                 }
             });
@@ -1823,6 +2097,13 @@
                 }
                 
                 renderAll();
+                setupRealtimeSubscriptions();
+            }
+
+            function renderAll() {
+                renderTables();
+                renderProducts();
+                renderOrder();
             }
 
             init();
